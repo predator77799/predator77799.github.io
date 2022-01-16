@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on kuldeepdotexe&#39;s blog</title>
+    <link>https://kuldeep.io/posts/</link>
+    <description>Recent content in Posts on kuldeepdotexe&#39;s blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sat, 15 Jan 2022 20:50:13 +0530</lastBuildDate><atom:link href="https://kuldeep.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>120 Days of High Frequency Hunting</title>
+      <link>https://kuldeep.io/posts/120-days-of-high-frequency-hunting/</link>
+      <pubDate>Sat, 15 Jan 2022 20:50:13 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/120-days-of-high-frequency-hunting/</guid>
+      <description>Hi, guys!
+I and @caffeinevulns took inspiration from @infosec_au&amp;rsquo;s blog about high-frequency bug hunting and how he found 120 bugs in 120 days. After going through the blog, we decided to try to find 120 bugs in 120 days. Although we did not exactly succeed in finding 120 bugs in 120 days, we still found pretty nice bugs. This blog will be a transparent disclosure of all the bugs I found on Synack Red Team during these 120 days and a small write-up about the techniques I used to find/exploit them.</description>
+      <content>&lt;p&gt;Hi, guys!&lt;/p&gt;
+&lt;p&gt;I and &lt;a href=&#34;https://twitter.com/caffeinevulns&#34;&gt;@caffeinevulns&lt;/a&gt; took inspiration from &lt;a href=&#34;https://twitter.com/infosec_au&#34;&gt;@infosec_au&lt;/a&gt;&amp;rsquo;s &lt;a href=&#34;https://shubs.io/high-frequency-security-bug-hunting-120-days-120-bugs/&#34;&gt;blog&lt;/a&gt; about high-frequency bug hunting and how he found 120 bugs in 120 days. After going through the blog, we decided to try to find 120 bugs in 120 days. Although we did not exactly succeed in finding 120 bugs in 120 days, we still found pretty nice bugs. This blog will be a transparent disclosure of all the bugs I found on Synack Red Team during these 120 days and a small write-up about the techniques I used to find/exploit them.&lt;/p&gt;
+&lt;p&gt;This particular write-up is limited to my bugs only due to length concerns. However, you can find &lt;a href=&#34;https://twitter.com/caffeinevulns&#34;&gt;@caffeinevulns&lt;/a&gt;&#39; bugs on his blog at &lt;a href=&#34;https://coffeejunkie.me/&#34;&gt;https://coffeejunkie.me/&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;For summarising, I found a total of 36 valid vulnerabilities and performed 29 missions and 29 patch verifications. Please note that I have not included duplicate and low-impact findings that were rejected. I originally decided to include them as well but then I felt lazy because I had to go through all the submissions once again and it was not worth the effort for rejected submissions.&lt;/p&gt;
+&lt;h3 id=&#34;submissions&#34;&gt;Submissions&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Transaction&lt;/th&gt;
+&lt;th&gt;Date&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#ac-in-reportspostsphp-leaking-pii&#34;&gt;AC in /reports/posts.php Leaking PII&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Aug 05, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#misconfigured-web-server-leaks-admin-functionalities-in-302-response-body&#34;&gt;Misconfigured Web Server Leaks Admin Functionalities In 302 Response Body&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Aug 05, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Unauthenticated SQL Injection in [REDACTED] on owner and scheme parameters&lt;/td&gt;
+&lt;td&gt;Aug 05, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Debug Flag Allows for viewing of Database Credentials&lt;/td&gt;
+&lt;td&gt;Aug 19, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Debug Flag Allows To See Database Credentials&lt;/td&gt;
+&lt;td&gt;Aug 19, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Debug Flag Allows To See Database Credentials&lt;/td&gt;
+&lt;td&gt;Aug 23, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Root Detection Bypass Using Frida&lt;/td&gt;
+&lt;td&gt;Sep 15, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Wordpress Login Panel&lt;/td&gt;
+&lt;td&gt;Sep 15, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Exposed Drupal Login Panel&lt;/td&gt;
+&lt;td&gt;Sep 16, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#multiple-time-based-sql-injections&#34;&gt;Multiple Time Based SQL Injections&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Sep 17, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Boot Path Traversal - CVE-2020-5410&lt;/td&gt;
+&lt;td&gt;Sep 21, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#reflected-xss-via-e-mail-parameter-with-aspnet-waf-bypass&#34;&gt;Reflected XSS via E-Mail parameter with ASP.NET WAF Bypass&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Sep 23, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Outdated Jira instance leaking PII information&lt;/td&gt;
+&lt;td&gt;Sep 24, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#login-authentication-bypass-in-client-side-ui&#34;&gt;Login Authentication Bypass In Client Side UI&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Sep 28, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#access-control-issue-allows-to-execute-sql-statements&#34;&gt;Access Control Issue Allows To Execute SQL Statements&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Sep 28, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Reflected XSS Via URL on [REDACTED]&lt;/td&gt;
+&lt;td&gt;Sep 30, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Reflected XSS Via key Parameter on [REDACTED]/admin/core/html/google_api_lang.php&lt;/td&gt;
+&lt;td&gt;Sep 30, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Reflected XSS Via POST Body&lt;/td&gt;
+&lt;td&gt;Sep 30, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Config Backup Disclosing Cpanel Passwords&lt;/td&gt;
+&lt;td&gt;Sep 30, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Folder Backup Exposing CVs&lt;/td&gt;
+&lt;td&gt;Oct 01, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#connectors-endpoints-leaking-database-connection-information&#34;&gt;/connectors endpoints leaking Database Connection Information&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Oct 01, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;IDOR Exposing CVs and PII&lt;/td&gt;
+&lt;td&gt;Oct 01, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;WordPress Login Panel&lt;/td&gt;
+&lt;td&gt;Oct 05, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Exposed Drupal Login Panel&lt;/td&gt;
+&lt;td&gt;Oct 06, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Admin Panel Disclosure&lt;/td&gt;
+&lt;td&gt;Oct 13, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Multiple Time Based SQL Injections&lt;/td&gt;
+&lt;td&gt;Oct 13, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Oct 14, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Default Admin Credentials On Nagios Server&lt;/td&gt;
+&lt;td&gt;Oct 28, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Multiple Exposed Files Disclosing Confidential Information&lt;/td&gt;
+&lt;td&gt;Oct 28, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#ssrf-allowing-to-access-internal-service&#34;&gt;SSRF Allowing To Access Internal Service&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Nov 02, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#ssrf-allowing-to-access-internal-service&#34;&gt;SSRF Allowing To Access Internal Service&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Nov 02, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;IDOR Allows To Read Order Details&lt;/td&gt;
+&lt;td&gt;Nov 04, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;IDOR Allows To Read Order Details&lt;/td&gt;
+&lt;td&gt;Nov 04, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Reflected XSS With WAF Bypass&lt;/td&gt;
+&lt;td&gt;Nov 10, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Multiple IDORs Allowing To Modify Endpoint Details&lt;/td&gt;
+&lt;td&gt;Nov 11, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#pre-auth-server-side-request-forgery&#34;&gt;Pre-auth Server Side Request Forgery&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Nov 24, 2021&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Patch Verifications(29)&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Missions(29)&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;analysis&#34;&gt;Analysis&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Category&lt;/th&gt;
+&lt;th&gt;Vuln Count&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Information Disclosure&lt;/td&gt;
+&lt;td&gt;13&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Cross Site Scripting&lt;/td&gt;
+&lt;td&gt;5&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Access/Privacy Control Violation&lt;/td&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Insecure Direct Object Reference&lt;/td&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;SQL Injection&lt;/td&gt;
+&lt;td&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Server Side Request Forgery&lt;/td&gt;
+&lt;td&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Path Traversal/Local File Inclusion&lt;/td&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Default Credentials&lt;/td&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Root/Jailbreak Detection Bypass&lt;/td&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id=&#34;brief-descriptions&#34;&gt;Brief Descriptions&lt;/h2&gt;
+&lt;h4 id=&#34;ac-in-reportspostsphp-leaking-pii&#34;&gt;AC in /reports/posts.php Leaking PII&lt;/h4&gt;
+&lt;p&gt;The PHP script &lt;strong&gt;/reports/posts.php&lt;/strong&gt; accepted a numeric POST parameter named &lt;code&gt;scheme&lt;/code&gt; which returned the residential address of users. I used the following command to enumerate different IDs and return addresses associated with the ID:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; id in &lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt;seq &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; 50&lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;do&lt;/span&gt; curl https://&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;REDACTED&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;/reports/posts.php -X POST -d &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;scheme%5B%5D=&lt;/span&gt;$id&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;amp;custom=&amp;amp;create=Posts&amp;#34;&lt;/span&gt; --silent | sed &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;1,2d&amp;#39;&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The above command will return addresses of users having IDs ranging from 1 to 50.&lt;/p&gt;
+&lt;h4 id=&#34;misconfigured-web-server-leaks-admin-functionalities-in-302-response-body&#34;&gt;Misconfigured Web Server Leaks Admin Functionalities In 302 Response Body&lt;/h4&gt;
+&lt;p&gt;This was the famous execute after redirect issue in PHP. The server had many PHP scripts that when visited, redirected to the login page. However, the 302 redirects also had the body contents of the same PHP script. Due to this, an attacker could access protected pages that leaked the admin functionality.&lt;/p&gt;
+&lt;p&gt;I got around the redirect issue by adding the following match and replace rule in Burp:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Field&lt;/th&gt;
+&lt;th&gt;Value&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Type&lt;/td&gt;
+&lt;td&gt;Response header&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Match&lt;/td&gt;
+&lt;td&gt;Location: https://[REDACTED].com&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Replace&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Comment&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Note: &lt;code&gt;Replace&lt;/code&gt; and &lt;code&gt;Comment&lt;/code&gt; fields are empty.&lt;/p&gt;
+&lt;h4 id=&#34;multiple-time-based-sql-injections&#34;&gt;Multiple Time Based SQL Injections&lt;/h4&gt;
+&lt;p&gt;This particular finding was very interesting because although it was pretty straightforward, &lt;code&gt;sqlmap&lt;/code&gt; was still not able to exploit it. For this vulnerability, I had to manually enumerate the database and dump information. It was a time-based SQL injection so it required a lot of patience to get something meaningful out of the database.&lt;/p&gt;
+&lt;p&gt;I first confirmed the SQL injection using the same special character fuzzing. However, this time, the application did not throw an SQL error when we sent a single quote. Instead, the response content was changed. Normally, the page would respond with 400 bad request. But if you send a single quote in the parameter, the response code changed from 400 to 500 hinting at an SQL injection. Now, if we do &lt;code&gt;&#39;-- -&lt;/code&gt;, the WAF blocked us from using that payload. I tried to bypass the WAF by using different forms of comments like &lt;code&gt;#&lt;/code&gt; and &lt;code&gt;/*&lt;/code&gt; but none of them worked and the WAF still blocked us.&lt;/p&gt;
+&lt;p&gt;The host where I confirmed SQLi was &lt;code&gt;api-gateway-c.[REDACTED].com&lt;/code&gt;. However, there was another host in scope which was very similar to our host. The other host was &lt;code&gt;api-gateway.[REDACTED].com&lt;/code&gt;. I checked if the auth token obtained from &lt;code&gt;api-gateway-c.[REDACTED].com&lt;/code&gt; worked on &lt;code&gt;api-gateway.[REDACTED].com&lt;/code&gt; and to my surprise, it actually did!&lt;/p&gt;
+&lt;p&gt;I checked if the endpoints where I confirmed SQL injection was present on &lt;code&gt;api-gateway.[REDACTED].com&lt;/code&gt; or not. The endpoints were actually present! I sent the SQL injection payload &lt;code&gt;&#39;-- -&lt;/code&gt; to the new host and the server sent 400 again. This successfully confirmed that the new server was also vulnerable to SQL injection and was not protected with WAF. This allowed me to enumerate the database freely without any issues.&lt;/p&gt;
+&lt;p&gt;The issues are still not resolved. For some reason, &lt;code&gt;sqlmap&lt;/code&gt; did not detect the injection point so I decided to manually enumerate the database.&lt;/p&gt;
+&lt;p&gt;I could get the server to delay response using a payload like &lt;code&gt;&#39;; WAITFOR DELAY &#39;00:00:10&#39;-- -&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Now, I needed to find a way to dump data using the delay. For that, I used MSSQL&amp;rsquo;s &lt;code&gt;IF&lt;/code&gt; statement. I constructed a payload that delayed the webserver for 10 seconds if the database username started with the character that I supplied. For example, the server would sleep for 10 seconds if the first letter of the database username was &amp;lsquo;A&amp;rsquo;.&lt;/p&gt;
+&lt;p&gt;The payload that I constructed was as follows:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;IF&lt;/span&gt;((&lt;span style=&#34;color:#66d9ef&#34;&gt;SELECT&lt;/span&gt; SYSEM_USER) &lt;span style=&#34;color:#66d9ef&#34;&gt;LIKE&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;%&amp;#39;&lt;/span&gt;) WAITFOR DELAY &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;00:00:10&amp;#39;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;I enumerated the whole database username this way. One character at a time. To enumerate one single character, it required me to send 64 requests. However, thanks to Burp Suite&amp;rsquo;s Intruder, I did not have to manually change the character and send 64 times. I just created a wordlist of lowercase and uppercase characters along with &lt;code&gt;-&lt;/code&gt; and &lt;code&gt;_&lt;/code&gt; as special characters and gave it to Intruder. Then, I sorted the results by the &lt;strong&gt;Response received&lt;/strong&gt; column.&lt;/p&gt;
+&lt;p&gt;After running the Intruder 10 times, we get the 10 characters long database username.&lt;/p&gt;
+&lt;p&gt;Normally, Synack Red Team requires actual table dumps to accept an SQL injection vulnerability. But in this case, they still accepted without me showing the database dumps because of the ridiculously slow data retrieval.&lt;/p&gt;
+&lt;h4 id=&#34;reflected-xss-via-e-mail-parameter-with-aspnet-waf-bypass&#34;&gt;Reflected XSS via E-Mail parameter with ASP.NET WAF Bypass&lt;/h4&gt;
+&lt;p&gt;I detect XSS vulnerabilities using a fairly simple payload like &lt;code&gt;d0mxss&#39;&amp;quot;&amp;gt;&amp;lt;&lt;/code&gt;. This payload allows me to find out the context in which the input is reflected. I used the same payload to detect this XSS. The payload was reflected in an input tag like:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-html&#34; data-lang=&#34;html&#34;&gt;&amp;lt;&lt;span style=&#34;color:#f92672&#34;&gt;input&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;E-mail&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;value&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;d0mxss&amp;#39;&amp;#34;&lt;/span&gt;&amp;gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;lt;&lt;/span&gt;&amp;#34;&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The ASP.NET WAF blocked common payloads like &lt;code&gt;&amp;quot; onclick=&amp;quot;alert(1)&lt;/code&gt;. To bypass the WAF, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&amp;#34; onmouseenter=&amp;#34;alert(document.domain)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The above payload will make the reflected HTML look like:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-html&#34; data-lang=&#34;html&#34;&gt;&amp;lt;&lt;span style=&#34;color:#f92672&#34;&gt;input&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;E-mail&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;value&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;onmouseenter&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;alert(document.domain)&amp;#34;&lt;/span&gt;&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;When the user moves the pointer above the &lt;code&gt;E-mail&lt;/code&gt; input, the XSS gets triggered.&lt;/p&gt;
+&lt;h4 id=&#34;login-authentication-bypass-in-client-side-ui&#34;&gt;Login Authentication Bypass In Client Side UI&lt;/h4&gt;
+&lt;p&gt;This was a really lame vulnerability that should not exist at all. All the authentication mechanism was implemented in the frontend using JavaScript and no checking was done on the backend whatsoever. Even a simple login request was not sent to the backend.&lt;/p&gt;
+&lt;p&gt;When we visited the web application, the application asked for a password in a JavaScript prompt. However, if we just click &amp;ldquo;&lt;strong&gt;cancel&lt;/strong&gt;&amp;rdquo; in the JavaScript prompt, we get access to the user interface.&lt;/p&gt;
+&lt;p&gt;In fact, the UI had the functionality to execute SQL statements and all of this was possible by just clicking &amp;ldquo;&lt;strong&gt;cancel&lt;/strong&gt;&amp;rdquo;.&lt;/p&gt;
+&lt;h4 id=&#34;access-control-issue-allows-to-execute-sql-statements&#34;&gt;Access Control Issue Allows To Execute SQL Statements&lt;/h4&gt;
+&lt;p&gt;This was the same UI that we talked about in the previous vulnerability. I felt like a normal user should not be able to access the UI to execute SQL statements. This was because the interface was at the &lt;code&gt;/admin&lt;/code&gt; endpoint and this endpoint was discovered from JavaScript files and there were not any links/references to this endpoint in the UI.&lt;/p&gt;
+&lt;p&gt;I found this concerning so I reported this issue and they actually accepted it considering it valid.&lt;/p&gt;
+&lt;h4 id=&#34;connectors-endpoints-leaking-database-connection-information&#34;&gt;/connectors endpoints leaking Database Connection Information&lt;/h4&gt;
+&lt;p&gt;When doing directory brute force with the &lt;code&gt;raft-small-words.txt&lt;/code&gt; wordlist provided in the &lt;a href=&#34;https://github.com/danielmiessler/SecLists&#34;&gt;SecLists&lt;/a&gt;, I came across an endpoint called &lt;code&gt;/connectors&lt;/code&gt;. When visited, this endpoint listed the following connectors:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;jdbc_sink_auroradb&lt;/li&gt;
+&lt;li&gt;local-file-sink&lt;/li&gt;
+&lt;li&gt;mdb_sink_new&lt;/li&gt;
+&lt;li&gt;s3_sink_sf_case_cdc1&lt;/li&gt;
+&lt;li&gt;test-vk&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I then felt like these connectors should be accessible via URL. So, I visited the following URL: &lt;code&gt;http://[REDACTED]/connectors/jdbc_sink_auroradb&lt;/code&gt;. And the endpoint listed the PostgreSQL credentials. I checked for PostgreSQL instances on the network if there were any.&lt;/p&gt;
+&lt;p&gt;To find PostgreSQL servers, I ran the following &lt;code&gt;masscan&lt;/code&gt; command:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;sudo masscan -iL scope.txt -p &lt;span style=&#34;color:#ae81ff&#34;&gt;5432&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;In the &lt;code&gt;masscan&lt;/code&gt; result, there were a couple of IPs. I used the credentials obtained from the &lt;code&gt;/connectors&lt;/code&gt; endpoint to log into these servers. And, the credentials actually worked!&lt;/p&gt;
+&lt;p&gt;For logging in, I used the following command:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;psql -h &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;REDACTED&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt; -p &lt;span style=&#34;color:#ae81ff&#34;&gt;5432&lt;/span&gt; -U root postgres
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h4 id=&#34;local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/h4&gt;
+&lt;p&gt;I found the &lt;code&gt;download.php&lt;/code&gt; file being reported as an SSRF in the analytics. However, it was rejected. I then investigated a bit more and found out that the &lt;code&gt;download.php&lt;/code&gt; takes a GET parameter named &lt;code&gt;f&lt;/code&gt; and the value of &lt;code&gt;f&lt;/code&gt; is a file that will be retrieved by the PHP script. Upon investigating the LFI, I found out that the script had the following line in the source code:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-php&#34; data-lang=&#34;php&#34;&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;file_get_contents&lt;/span&gt;($_GET[&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;f&amp;#39;&lt;/span&gt;]);
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;So, I just put &lt;code&gt;f=download.php&lt;/code&gt; to show the PoC.&lt;/p&gt;
+&lt;h4 id=&#34;ssrf-allowing-to-access-internal-service&#34;&gt;SSRF Allowing To Access Internal Service&lt;/h4&gt;
+&lt;p&gt;This was a vulnerability in Oracle Application Server 10g Mapviewer.&lt;/p&gt;
+&lt;p&gt;For proof of concept, I performed a full port scan of the server to confirm that the &lt;code&gt;8002&lt;/code&gt; port was not exposed to the internet. I then put the URL &lt;code&gt;http://127.0.0.1:8002/mapviewer/omserver&lt;/code&gt; as the Mapviewer URL and submitted the request. The request succeeded and a response was received from the &lt;code&gt;8002&lt;/code&gt; port confirming the SSRF vulnerability.&lt;/p&gt;
+&lt;p&gt;If we provided a port that was not open or did not serve HTTP, the response timed out.&lt;/p&gt;
+&lt;h4 id=&#34;pre-auth-server-side-request-forgery&#34;&gt;Pre-auth Server Side Request Forgery&lt;/h4&gt;
+&lt;p&gt;This was a &lt;code&gt;nuclei&lt;/code&gt; finding.&lt;/p&gt;
+&lt;p&gt;This was however interesting because the same day, I was onboarded on two different programs from the same organization. One was an internal test meaning we had to test their internal network that is not reachable by the public. And the other was an external test that had public-facing IPs.&lt;/p&gt;
+&lt;p&gt;One of such public-facing IPs was vulnerable to Microsoft Exchange&amp;rsquo;s CVE-2021-26855. This was a pre-auth SSRF and you can find the PoC on the internet.&lt;/p&gt;
+&lt;p&gt;I could have reported this right away but I felt like I should fully exploit the impact of an SSRF. So, I took the list of IPs from the internal test and put them into the SSRF exploit to find out the HTTP servers.&lt;/p&gt;
+&lt;p&gt;Synack&amp;rsquo;s VPN was not correctly configured and the internal IPs were not accessible by us. However, by exploiting this SSRF, I could reach those IPs as well.&lt;/p&gt;
+&lt;p&gt;From this point, I did not go ahead to enumerate these IPs as post-exploitation is not allowed on Synack Red Team.&lt;/p&gt;
+&lt;p&gt;Reported the issue and won the quality round.&lt;/p&gt;
+&lt;p&gt;Thanks for the read. :)&lt;/p&gt;
+&lt;p&gt;You can reach out to me at &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;@kuldeepdotexe&lt;/a&gt;.&lt;/p&gt;
+</content>
+    </item>
+    
+    <item>
+      <title>Prove Yourself as 1337 Null Ahmedabad</title>
+      <link>https://kuldeep.io/posts/prove-yourself-as-1337-null-ahmedabad/</link>
+      <pubDate>Sat, 15 Jan 2022 18:35:22 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/prove-yourself-as-1337-null-ahmedabad/</guid>
+      <description>Null community is an open security community where pen-testers, bug bounty hunters, students, security researchers come under the same roof and exchange knowledge. One of its chapter in Ahmedabad had CTF this 22nd. They made the CTF online and I was a volunteer of the community so it was obvious I was going to participate in it.
+It had 6 challenges in total. Two web challenges, one binary exploitation, one steganography, one crypto, and one steganography + cryptography combined.</description>
+      <content>&lt;p&gt;Null community is an open security community where pen-testers, bug bounty hunters, students, security researchers come under the same roof and exchange knowledge. One of its chapter in Ahmedabad had CTF this 22nd. They made the CTF online and I was a volunteer of the community so it was obvious I was going to participate in it.&lt;/p&gt;
+&lt;p&gt;It had 6 challenges in total. Two web challenges, one binary exploitation, one steganography, one crypto, and one steganography + cryptography combined.&lt;/p&gt;
+&lt;p&gt;This writeup is about a web challenge named &amp;ldquo;Prove yourself as 1337&amp;rdquo;. It was of 550 points, the highest of all challenges in the CTF. And looking at the difficulty it had, I think that even 550 points are less.&lt;/p&gt;
+&lt;p&gt;Initially, there was an URL which leads to a web application. Below is the initial description of the challenge. It was sure that brute-forcing the parameters isn&amp;rsquo;t going to work as it was written: &amp;ldquo;don&amp;rsquo;t waste time&amp;rdquo;.  Also, it was said that: &amp;ldquo;A variable can lead to source code of index.php if set&amp;rdquo;. So, it gave us a hint that the variable might be boolean.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/challenge.png&#34; alt=&#34;Challenge&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Now, as opening the URL gives, there was the following screen:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/webroot.png&#34; alt=&#34;webroot&#34;&gt;&lt;/p&gt;
+&lt;p&gt;It took two inputs, one username, and password. I supplied 1337 and 1337 as username, password pair and I found a really interesting thing in the URL. So, two inputs were visible but it actually took 5 inputs out of which three were hidden.&lt;/p&gt;
+&lt;p&gt;The URL was: &lt;a href=&#34;http://165.22.218.145/buggy/?username=1337&amp;amp;password=1337&amp;amp;random1=65616f96af8b27efd6c16f5249e58700&amp;amp;random2=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=0&#34;&gt;http://165.22.218.145/buggy/?username=1337&amp;amp;password=1337&amp;amp;random1=65616f96af8b27efd6c16f5249e58700&amp;amp;random2=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=0&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Here, username and password were as it were. random1 and random2 were some random hash like values. And then there was a parameter named &amp;ldquo;source&amp;rdquo; and it was set to 0. I quickly figured out that this has something to do with the source code. I remembered the challenge description and it said, &amp;ldquo;A variable can lead to source code of index.php if set&amp;rdquo; so now I knew that I need to &amp;ldquo;set&amp;rdquo; this variable. I changed the value of it to 1 from 0 and it showed me the source code.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/source-code.png&#34; alt=&#34;Source Code&#34;&gt;&lt;/p&gt;
+&lt;p&gt;I saw that there was a lot of md5 logic going on in the source code. I was wondering if this was a web challenge or a crypto challenge.&lt;/p&gt;
+&lt;p&gt;The flags were coming from some other PHP script called as &amp;ldquo;flag.php&amp;rdquo;. I tried accessing it directly but no luck! There were three flags in total which; when concatenated, forms one final flag. Each of these individual flags had some conditions behind them. Which means the flag will be concatenated only if the condition falls true. There were three different conditions.&lt;/p&gt;
+&lt;h3 id=&#34;condition-1&#34;&gt;Condition #1&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-1.png&#34; alt=&#34;Condition 1&#34;&gt;&lt;/p&gt;
+&lt;p&gt;In this, flag1 was concatenated to final_flag only if random1 and random2 variables were not identical but the hash of random1 variable concatenated with some secret variable called salt was identical to the hash of random2 variable concatenated with the salt. But one of the aims of hashes says that &amp;ldquo;Two different values must not produce the same hash&amp;rdquo;. So, looks like we are stuck here, or are we? However, here is an attack called hash collision attack which I quickly remembered in which two different values produce the exact same hash. I googled a lot to find such strings and I actually found them. But they were in binary format and we cannot pass it in the query string. I spent hours and hours searching for such strings but no luck.&lt;/p&gt;
+&lt;p&gt;Then the other web challenge clicked in my head which was exploiting the type conversion of PHP(but not type juggling). Type conversion fails and gives a warning when supplying the incompatible type and did not throw and error. I checked in the PHP documentation of md5() and saw it takes a string as an input. Then I wondered what if I supply array as an input to the function like I did in the previous challenge. I changed &lt;code&gt;random1=65616f96af8b27efd6c16f5249e58700 and random2=7ec7e3cb456c9f07229df3fd1127ed42&lt;/code&gt; to &lt;code&gt;random1[]=65616f96af8b27efd6c16f5249e58700 and random2[]=7ec7e3cb456c9f07229df3fd1127ed42&lt;/code&gt; and the application threw the first part of the flag.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-1.png&#34; alt=&#34;Flag 1&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;condition-2&#34;&gt;Condition #2&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-2.png&#34; alt=&#34;Condition 2&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Here, the first condition satisfies if both username and password are not empty. Then, username and password are concatenated and stored in a string called concat. Now, the second condition satisfies if the md5 hash of the concatenated string was equal to the string itself. But how is this even possible? We have learned that hash(string) ≠ string. But here, another PHP specific vulnerability lies here. And that was, yes as you have already guessed it, &amp;ldquo;Type Juggling&amp;rdquo;. Type juggling was introduced as a feature of PHP but turned out to be a critical authentication vulnerability. It means, type of variable is decided upon the context it is used in. Which means, if (&amp;ldquo;0e001234&amp;rdquo;==&amp;ldquo;0&amp;rdquo;) {} will return true even if they are not the exact same values.&lt;/p&gt;
+&lt;p&gt;So, I needed to find such a value that it&amp;rsquo;s hash&amp;rsquo;s first one-digit are the same as the value&amp;rsquo;s first digit in order to make the condition true. It was a difficult process to do it all manually so I created a simple python script and ran it which eventually crashed my computer. I googled a lot to find such strings but could not find anything. I was out of luck. Then I decided to take a hint from the CTF platform which cost me 150 points but in turn returned me a &amp;ldquo;working&amp;rdquo; script which did not crash my computer. I ran it and in like 10 minutes, the number was there!!!&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;username=0e2159&amp;amp;password=62017&amp;amp;random1[]=65616f96af8b27efd6c16f5249e58700&amp;amp;random2[]=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;I put half of the number in username variable and the other half in password variable as they both were concatenated. And boom! Got the second part of the flag!&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-2.png&#34; alt=&#34;Flag 2&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;condition-3&#34;&gt;Condition #3&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-3.png&#34; alt=&#34;Condition 3&#34;&gt;&lt;/p&gt;
+&lt;p&gt;First of all, here is a call to the &lt;code&gt;parse_str()&lt;/code&gt; function which parses query string into an array called as res. I could not think of anything in this part of the challenge. I scratched my head for hours. Then I looked up for vulnerabilities in &lt;code&gt;parse_str()&lt;/code&gt; function as the last attempt. And it actually had a vulnerability. So, we can overwrite any already existing variable by passing it in a query string which was later parsed by &lt;code&gt;parse_str()&lt;/code&gt;. So, I supplied  the hash given in the source code as the value of the hashed variable using the query string:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;username=0e2159&amp;amp;password=62017&amp;amp;random1[]=65616f96af8b27efd6c16f5249e58700&amp;amp;random2[]=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=1&amp;amp;hashed=ba6e12df1edab45f11f70b547dba9959
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;And, finally, after hours of hard work, the flag was there!!!&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-3.png&#34; alt=&#34;Flag 3&#34;&gt;&lt;/p&gt;
+&lt;p&gt;It was a really fun challenge to solve. Kudos to everyone who made this CTF possible.&lt;/p&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>
