@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on kuldeepdotexe&#39;s blog</title>
-    <link>https://kuldeep.io/posts/</link>
-    <description>Recent content in Posts on kuldeepdotexe&#39;s blog</description>
+    <title>LFI on kuldeepdotexe&#39;s blog</title>
+    <link>https://kuldeep.io/tags/lfi/</link>
+    <description>Recent content in LFI on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 23 Jan 2022 22:37:16 +0530</lastBuildDate><atom:link href="https://kuldeep.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 23 Jan 2022 22:37:16 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/lfi/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Path Traversal Paradise</title>
       <link>https://kuldeep.io/posts/path-traversal-paradise/</link>
@@ -450,49 +450,6 @@ I and @caffeinevulns took inspiration from @infosec_au&amp;rsquo;s blog about hi
 &lt;p&gt;Reported the issue and won the quality round.&lt;/p&gt;
 &lt;p&gt;Thanks for the read. :)&lt;/p&gt;
 &lt;p&gt;You can reach out to me at &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;@kuldeepdotexe&lt;/a&gt;.&lt;/p&gt;
-</content>
-    </item>
-    
-    <item>
-      <title>Prove Yourself as 1337 Null Ahmedabad</title>
-      <link>https://kuldeep.io/posts/prove-yourself-as-1337-null-ahmedabad/</link>
-      <pubDate>Sat, 15 Jan 2022 18:35:22 +0530</pubDate>
-      
-      <guid>https://kuldeep.io/posts/prove-yourself-as-1337-null-ahmedabad/</guid>
-      <description>Null community is an open security community where pen-testers, bug bounty hunters, students, security researchers come under the same roof and exchange knowledge. One of its chapter in Ahmedabad had CTF this 22nd. They made the CTF online and I was a volunteer of the community so it was obvious I was going to participate in it.
-It had 6 challenges in total. Two web challenges, one binary exploitation, one steganography, one crypto, and one steganography + cryptography combined.</description>
-      <content>&lt;p&gt;Null community is an open security community where pen-testers, bug bounty hunters, students, security researchers come under the same roof and exchange knowledge. One of its chapter in Ahmedabad had CTF this 22nd. They made the CTF online and I was a volunteer of the community so it was obvious I was going to participate in it.&lt;/p&gt;
-&lt;p&gt;It had 6 challenges in total. Two web challenges, one binary exploitation, one steganography, one crypto, and one steganography + cryptography combined.&lt;/p&gt;
-&lt;p&gt;This writeup is about a web challenge named &amp;ldquo;Prove yourself as 1337&amp;rdquo;. It was of 550 points, the highest of all challenges in the CTF. And looking at the difficulty it had, I think that even 550 points are less.&lt;/p&gt;
-&lt;p&gt;Initially, there was an URL which leads to a web application. Below is the initial description of the challenge. It was sure that brute-forcing the parameters isn&amp;rsquo;t going to work as it was written: &amp;ldquo;don&amp;rsquo;t waste time&amp;rdquo;.  Also, it was said that: &amp;ldquo;A variable can lead to source code of index.php if set&amp;rdquo;. So, it gave us a hint that the variable might be boolean.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/challenge.png&#34; alt=&#34;Challenge&#34;&gt;&lt;/p&gt;
-&lt;p&gt;Now, as opening the URL gives, there was the following screen:&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/webroot.png&#34; alt=&#34;webroot&#34;&gt;&lt;/p&gt;
-&lt;p&gt;It took two inputs, one username, and password. I supplied 1337 and 1337 as username, password pair and I found a really interesting thing in the URL. So, two inputs were visible but it actually took 5 inputs out of which three were hidden.&lt;/p&gt;
-&lt;p&gt;The URL was: &lt;a href=&#34;http://165.22.218.145/buggy/?username=1337&amp;amp;password=1337&amp;amp;random1=65616f96af8b27efd6c16f5249e58700&amp;amp;random2=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=0&#34;&gt;http://165.22.218.145/buggy/?username=1337&amp;amp;password=1337&amp;amp;random1=65616f96af8b27efd6c16f5249e58700&amp;amp;random2=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=0&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;Here, username and password were as it were. random1 and random2 were some random hash like values. And then there was a parameter named &amp;ldquo;source&amp;rdquo; and it was set to 0. I quickly figured out that this has something to do with the source code. I remembered the challenge description and it said, &amp;ldquo;A variable can lead to source code of index.php if set&amp;rdquo; so now I knew that I need to &amp;ldquo;set&amp;rdquo; this variable. I changed the value of it to 1 from 0 and it showed me the source code.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/source-code.png&#34; alt=&#34;Source Code&#34;&gt;&lt;/p&gt;
-&lt;p&gt;I saw that there was a lot of md5 logic going on in the source code. I was wondering if this was a web challenge or a crypto challenge.&lt;/p&gt;
-&lt;p&gt;The flags were coming from some other PHP script called as &amp;ldquo;flag.php&amp;rdquo;. I tried accessing it directly but no luck! There were three flags in total which; when concatenated, forms one final flag. Each of these individual flags had some conditions behind them. Which means the flag will be concatenated only if the condition falls true. There were three different conditions.&lt;/p&gt;
-&lt;h3 id=&#34;condition-1&#34;&gt;Condition #1&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-1.png&#34; alt=&#34;Condition 1&#34;&gt;&lt;/p&gt;
-&lt;p&gt;In this, flag1 was concatenated to final_flag only if random1 and random2 variables were not identical but the hash of random1 variable concatenated with some secret variable called salt was identical to the hash of random2 variable concatenated with the salt. But one of the aims of hashes says that &amp;ldquo;Two different values must not produce the same hash&amp;rdquo;. So, looks like we are stuck here, or are we? However, here is an attack called hash collision attack which I quickly remembered in which two different values produce the exact same hash. I googled a lot to find such strings and I actually found them. But they were in binary format and we cannot pass it in the query string. I spent hours and hours searching for such strings but no luck.&lt;/p&gt;
-&lt;p&gt;Then the other web challenge clicked in my head which was exploiting the type conversion of PHP(but not type juggling). Type conversion fails and gives a warning when supplying the incompatible type and did not throw and error. I checked in the PHP documentation of md5() and saw it takes a string as an input. Then I wondered what if I supply array as an input to the function like I did in the previous challenge. I changed &lt;code&gt;random1=65616f96af8b27efd6c16f5249e58700 and random2=7ec7e3cb456c9f07229df3fd1127ed42&lt;/code&gt; to &lt;code&gt;random1[]=65616f96af8b27efd6c16f5249e58700 and random2[]=7ec7e3cb456c9f07229df3fd1127ed42&lt;/code&gt; and the application threw the first part of the flag.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-1.png&#34; alt=&#34;Flag 1&#34;&gt;&lt;/p&gt;
-&lt;h3 id=&#34;condition-2&#34;&gt;Condition #2&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-2.png&#34; alt=&#34;Condition 2&#34;&gt;&lt;/p&gt;
-&lt;p&gt;Here, the first condition satisfies if both username and password are not empty. Then, username and password are concatenated and stored in a string called concat. Now, the second condition satisfies if the md5 hash of the concatenated string was equal to the string itself. But how is this even possible? We have learned that hash(string) ≠ string. But here, another PHP specific vulnerability lies here. And that was, yes as you have already guessed it, &amp;ldquo;Type Juggling&amp;rdquo;. Type juggling was introduced as a feature of PHP but turned out to be a critical authentication vulnerability. It means, type of variable is decided upon the context it is used in. Which means, if (&amp;ldquo;0e001234&amp;rdquo;==&amp;ldquo;0&amp;rdquo;) {} will return true even if they are not the exact same values.&lt;/p&gt;
-&lt;p&gt;So, I needed to find such a value that it&amp;rsquo;s hash&amp;rsquo;s first one-digit are the same as the value&amp;rsquo;s first digit in order to make the condition true. It was a difficult process to do it all manually so I created a simple python script and ran it which eventually crashed my computer. I googled a lot to find such strings but could not find anything. I was out of luck. Then I decided to take a hint from the CTF platform which cost me 150 points but in turn returned me a &amp;ldquo;working&amp;rdquo; script which did not crash my computer. I ran it and in like 10 minutes, the number was there!!!&lt;/p&gt;
-&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;username=0e2159&amp;amp;password=62017&amp;amp;random1[]=65616f96af8b27efd6c16f5249e58700&amp;amp;random2[]=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=1
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;I put half of the number in username variable and the other half in password variable as they both were concatenated. And boom! Got the second part of the flag!&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-2.png&#34; alt=&#34;Flag 2&#34;&gt;&lt;/p&gt;
-&lt;h3 id=&#34;condition-3&#34;&gt;Condition #3&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-3.png&#34; alt=&#34;Condition 3&#34;&gt;&lt;/p&gt;
-&lt;p&gt;First of all, here is a call to the &lt;code&gt;parse_str()&lt;/code&gt; function which parses query string into an array called as res. I could not think of anything in this part of the challenge. I scratched my head for hours. Then I looked up for vulnerabilities in &lt;code&gt;parse_str()&lt;/code&gt; function as the last attempt. And it actually had a vulnerability. So, we can overwrite any already existing variable by passing it in a query string which was later parsed by &lt;code&gt;parse_str()&lt;/code&gt;. So, I supplied  the hash given in the source code as the value of the hashed variable using the query string:&lt;/p&gt;
-&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;username=0e2159&amp;amp;password=62017&amp;amp;random1[]=65616f96af8b27efd6c16f5249e58700&amp;amp;random2[]=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=1&amp;amp;hashed=ba6e12df1edab45f11f70b547dba9959
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;And, finally, after hours of hard work, the flag was there!!!&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-3.png&#34; alt=&#34;Flag 3&#34;&gt;&lt;/p&gt;
-&lt;p&gt;It was a really fun challenge to solve. Kudos to everyone who made this CTF possible.&lt;/p&gt;
 </content>
     </item>
     

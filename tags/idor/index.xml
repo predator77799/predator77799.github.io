@@ -1,137 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on kuldeepdotexe&#39;s blog</title>
-    <link>https://kuldeep.io/posts/</link>
-    <description>Recent content in Posts on kuldeepdotexe&#39;s blog</description>
+    <title>IDOR on kuldeepdotexe&#39;s blog</title>
+    <link>https://kuldeep.io/tags/idor/</link>
+    <description>Recent content in IDOR on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 23 Jan 2022 22:37:16 +0530</lastBuildDate><atom:link href="https://kuldeep.io/posts/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>Path Traversal Paradise</title>
-      <link>https://kuldeep.io/posts/path-traversal-paradise/</link>
-      <pubDate>Sun, 23 Jan 2022 22:37:16 +0530</pubDate>
-      
-      <guid>https://kuldeep.io/posts/path-traversal-paradise/</guid>
-      <description>Hi, guys!
-This blog will be about all the different kinds of Path Traversals and Local File Inclusion vulnerabilities that I have found in Synack Red Team.
-After hacking on Synack Red Team for approximately 9 months, I came to realise that Path Traversal and LFI like vulnerabilities are very common. I reported few authenticated vulnerabilities and few unauthenticated. However, I will try to cover both kinds of vulnerabilities.
-Before moving forward, I&amp;rsquo;d like to list all my Path Traversal/LFI submissions.</description>
-      <content>&lt;p&gt;Hi, guys!&lt;/p&gt;
-&lt;p&gt;This blog will be about all the different kinds of Path Traversals and Local File Inclusion vulnerabilities that I have found in Synack Red Team.&lt;/p&gt;
-&lt;p&gt;After hacking on Synack Red Team for approximately 9 months, I came to realise that Path Traversal and LFI like vulnerabilities are very common. I reported few authenticated vulnerabilities and few unauthenticated. However, I will try to cover both kinds of vulnerabilities.&lt;/p&gt;
-&lt;p&gt;Before moving forward, I&amp;rsquo;d like to list all my Path Traversal/LFI submissions.&lt;/p&gt;
-&lt;h3 id=&#34;submissions&#34;&gt;Submissions&lt;/h3&gt;
-&lt;table&gt;
-&lt;thead&gt;
-&lt;tr&gt;
-&lt;th&gt;Submission&lt;/th&gt;
-&lt;th&gt;Status&lt;/th&gt;
-&lt;/tr&gt;
-&lt;/thead&gt;
-&lt;tbody&gt;
-&lt;tr&gt;
-&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#path-traversal-vulnerability-leads-to-source-code-disclosure&#34;&gt;Path Traversal Vulnerability Leads To Source Code Disclosure&lt;/a&gt;&lt;/td&gt;
-&lt;td&gt;Accepted&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr&gt;
-&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#local-file-inclusion-in-vmware-vcenter-running-at-redacted&#34;&gt;Local File Inclusion in VMWare VCenter running at [REDACTED]&lt;/a&gt;&lt;/td&gt;
-&lt;td&gt;Accepted&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr&gt;
-&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#spring-boot-path-traversal---cve-2020-5410&#34;&gt;Spring Boot Path Traversal - CVE-2020-5410&lt;/a&gt;&lt;/td&gt;
-&lt;td&gt;Accepted&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr&gt;
-&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/td&gt;
-&lt;td&gt;Accepted&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr&gt;
-&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/td&gt;
-&lt;td&gt;Rejected (Duplicated my previous report)&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr&gt;
-&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/td&gt;
-&lt;td&gt;Rejected (Duplicated in quality period)&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr&gt;
-&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#path-traversal-allows-to-download-licence-keys&#34;&gt;Path Traversal Allows To Download Licence Keys&lt;/a&gt;&lt;/td&gt;
-&lt;td&gt;Accepted&lt;/td&gt;
-&lt;/tr&gt;
-&lt;/tbody&gt;
-&lt;/table&gt;
-&lt;h3 id=&#34;descriptions&#34;&gt;Descriptions&lt;/h3&gt;
-&lt;h4 id=&#34;path-traversal-vulnerability-leads-to-source-code-disclosure&#34;&gt;Path Traversal Vulnerability Leads To Source Code Disclosure&lt;/h4&gt;
-&lt;p&gt;This was the very first Path Traversal vulnerability that I had found in Synack Red Team. Also, even though I was pretty new to the platform and to the whole bug bounty thing in general, this report won the quality round so I am very proud of this particular report.&lt;/p&gt;
-&lt;p&gt;After logging into the application, the application provided a bunch of sections like manage vendors, manage inventory, etc with a bunch of functionalities.&lt;/p&gt;
-&lt;p&gt;Upon further inspecting these sections, I came across an interesting functionality that involved importing the data. The file was named &lt;code&gt;DataImport.view&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/DataImport.png&#34; alt=&#34;DataImport.view&#34;&gt;&lt;/p&gt;
-&lt;p&gt;I tried getting RCE by uploading an ASPX web shell and it actually worked! Reported it and that report got accepted too! However, that&amp;rsquo;s a different story. We want to discuss Path Traversals here and not RCEs.&lt;/p&gt;
-&lt;p&gt;So, after successfully uploading a file, we were given the functionality to read the file.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/ReadFile.png&#34; alt=&#34;ReadFile&#34;&gt;&lt;/p&gt;
-&lt;p&gt;After clicking the &amp;ldquo;&lt;strong&gt;ReadFile&lt;/strong&gt;&amp;rdquo; button, it filled the file name field to the current uploaded filename by default. However, we had the ability to change the file name.&lt;/p&gt;
-&lt;p&gt;Now, I just had to provide a valid file name. For this, I used the &lt;code&gt;Auth.aspx&lt;/code&gt; to which the login request was sent. I could be sure that this exists because a login request was sent to this file and it resided in the webroot.&lt;/p&gt;
-&lt;p&gt;So, I tried to do path traversal using payloads like &lt;code&gt;../Auth.aspx&lt;/code&gt; and &lt;code&gt;../../Auth.aspx&lt;/code&gt; etc.&lt;/p&gt;
-&lt;p&gt;And, after three &lt;code&gt;../&lt;/code&gt; sequences, the file was actually returned!&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/Auth.png&#34; alt=&#34;Auth.aspx&#34;&gt;&lt;/p&gt;
-&lt;p&gt;The response looked like this:&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/AuthResponse.png&#34; alt=&#34;AuthResponse&#34;&gt;&lt;/p&gt;
-&lt;p&gt;The file was broken because some sort of XML parsing was done on it. I still went ahead and reported it because it was still a path traversal issue and disclosed source code contents.&lt;/p&gt;
-&lt;p&gt;I could do more creative things here like pulling more sensitive files but I stopped here because very limited time was left in the quality round. I initially did not care much for this vulnerability as I had already reported an RCE there but then quickly made a report in under 15 minutes putting together all my PoCs and I still won the quality round.&lt;/p&gt;
-&lt;h4 id=&#34;local-file-inclusion-in-vmware-vcenter-running-at-redacted&#34;&gt;Local File Inclusion in VMWare VCenter running at [REDACTED]&lt;/h4&gt;
-&lt;p&gt;This was the classic VMWare VCenter &lt;code&gt;/eam/vib&lt;/code&gt; LFI vulnerability.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;/eam/vib&lt;/code&gt; endpoint in VMWare VCenter instances takes a parameter named &lt;code&gt;id&lt;/code&gt; in the GET request. The value to this &lt;code&gt;id&lt;/code&gt; parameter is a file name that will be retrieved by the VCenter instance and will be given back in the response.&lt;/p&gt;
-&lt;p&gt;There are already many resources regarding this particular vulnerability and I do not think much is to be said about it in this particular article.&lt;/p&gt;
-&lt;p&gt;I used the following payload to retrieve the &lt;code&gt;hosts&lt;/code&gt; file off the remote server:&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/eam/vib?id=C:/WINDOWS/System32/drivers/etc/hosts
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;There were some IP to host mappings in the &lt;code&gt;hosts&lt;/code&gt; file which I thought was enough for impact but with creativity, more could have been achieved.&lt;/p&gt;
-&lt;p&gt;I reported the issue during the quality round and this also won the QR.&lt;/p&gt;
-&lt;h4 id=&#34;spring-boot-path-traversal---cve-2020-5410&#34;&gt;Spring Boot Path Traversal - CVE-2020-5410&lt;/h4&gt;
-&lt;p&gt;This was a known vulnerability in Spring Boot Cloud Config server. For PoC, I referred to this article here: &lt;a href=&#34;http://www.jrasp.com/case/CVE-2020-5410.html&#34;&gt;http://www.jrasp.com/case/CVE-2020-5410.html&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;That article talks in detail about the vulnerability and also explains the source code.&lt;/p&gt;
-&lt;p&gt;I did not read that much and simply took the PoC from there and used it on the target that I had for testing. And the exploit worked!&lt;/p&gt;
-&lt;p&gt;I used the same payload as in the PoC which is:&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%252Fpasswd%23foo/development
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The above payload retrieves the &lt;code&gt;/etc/passwd&lt;/code&gt; file.&lt;/p&gt;
-&lt;p&gt;However, this was Java and one odd thing about Java Path Traversals/LFIs is that if you specify a directory instead of a file for opening, it will actually list the content of that directory.&lt;/p&gt;
-&lt;p&gt;So, for example, if I did not know what files were in the &lt;code&gt;/etc&lt;/code&gt; directory, I would simply use the following payload to list all the files:&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%23foo/development
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This is just the previous payload with the trailing &lt;code&gt;/passwd&lt;/code&gt; removed. Now, we are just listing the contents of the &lt;code&gt;/etc&lt;/code&gt; directory.&lt;/p&gt;
-&lt;p&gt;I used this feature to list the contents of the root directory in the affected Linux server. In the root directory, I found a file named &lt;code&gt;application.jar&lt;/code&gt; which was potentially the source code of the currently running Spring Boot Cloud Config server.&lt;/p&gt;
-&lt;p&gt;Also, the root directory had a file &lt;code&gt;.dockerenv&lt;/code&gt; so I was quite sure that I was in a docker container.&lt;/p&gt;
-&lt;p&gt;However, Synack Red Team has the stop-and-report policy according to which, we are not supposed to do post-exploitation.&lt;/p&gt;
-&lt;p&gt;I reported the issue during the 8 hours long quality period. And nobody had checked for this particular vulnerability and mine was the only report in QR.&lt;/p&gt;
-&lt;h4 id=&#34;local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/h4&gt;
-&lt;p&gt;I have already discussed this vulnerability in my previous article and you can find it here: &lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/p&gt;
-&lt;h4 id=&#34;path-traversal-allows-to-download-licence-keys&#34;&gt;Path Traversal Allows To Download Licence Keys&lt;/h4&gt;
-&lt;p&gt;This path traversal was also very interesting. This was in a custom-built application and it did not require any authentication.&lt;/p&gt;
-&lt;p&gt;When we visited the webroot, the web application redirected us to the login page.&lt;/p&gt;
-&lt;p&gt;The login page was custom built and there was a brand logo along with the login page so I cannot show you the screenshots.&lt;/p&gt;
-&lt;p&gt;Upon visiting the login page, a request to the &lt;code&gt;/web/product_logo&lt;/code&gt; endpoint was sent. The request contained a GET parameter named &lt;code&gt;logo&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Overall, the request URL looked like this:&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/web/product_logo?logo=logo.png
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The parameter &lt;code&gt;logo&lt;/code&gt; took a file name as the input and returned that particular file in the response. In this case, it was &lt;code&gt;logo.png&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Now, as this is functionality to read files, there may be a potential LFI/Path Traversal here. So, I changed the file name to random file names like &lt;code&gt;index.html&lt;/code&gt;, &lt;code&gt;index.php&lt;/code&gt;, &lt;code&gt;index.js&lt;/code&gt; etc. However, none of them worked.&lt;/p&gt;
-&lt;p&gt;So, I ran &lt;code&gt;ffuf&lt;/code&gt; hoping to discover more files but it was a failure. I used the &lt;code&gt;raft-small-files-lowercase.txt&lt;/code&gt; provided in the &lt;a href=&#34;https://github.com/danielmiessler/SecLists&#34;&gt;SecLists&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;I did not know the underlying technology which is used so it was quite painful to enumerate files.&lt;/p&gt;
-&lt;p&gt;However, I knew it was a Windows box because of the case-insensitive directory structure. What it basically means is that, in Windows, &lt;code&gt;WinDows&lt;/code&gt; and &lt;code&gt;Windows&lt;/code&gt; are the same directories/files as it is not case sensitive. And when I was doing my recon, I received the same response when I did &lt;code&gt;/web&lt;/code&gt; or &lt;code&gt;/Web&lt;/code&gt; so I was quite sure it was a Windows box.&lt;/p&gt;
-&lt;p&gt;There are other ways to determine this too but I decided to assume it was Windows.&lt;/p&gt;
-&lt;p&gt;Same as my past submissions, I decided to read the &lt;code&gt;C:/WINDOWS/System32/drivers/etc/hosts&lt;/code&gt; file of the remote server.&lt;/p&gt;
-&lt;p&gt;So, I used a path traversal payload and the final URL looked like this:&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/web/product_logo?logo=../WINDOWS/System32/drivers/etc/hosts
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;However, one &lt;code&gt;../&lt;/code&gt; sequence did not work. So I kept increasing the &lt;code&gt;../&lt;/code&gt; sequences.&lt;/p&gt;
-&lt;p&gt;Finally after 10 &lt;code&gt;../&lt;/code&gt; sequences, I finally hit the &lt;code&gt;hosts&lt;/code&gt; file and the server retrieved it for us.&lt;/p&gt;
-&lt;p&gt;The final payload looked like this:&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/web/product_logo?logo=../../../../../../../../../../WINDOWS/System32/drivers/etc/hosts
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Although this was enough for PoC, I decided to dig deeper with this path traversal.&lt;/p&gt;
-&lt;p&gt;When I was fuzzing the application, I encountered an error that disclosed the full path to the webroot.&lt;/p&gt;
-&lt;p&gt;I ran &lt;code&gt;ffuf&lt;/code&gt; again but now in the webroot of the server using the path traversal that I had found. This way, I was able to enumerate a file named &lt;code&gt;LICENSE&lt;/code&gt; that had license keys of the application.&lt;/p&gt;
-&lt;p&gt;I reported the issue with all my findings and the report won the QR.&lt;/p&gt;
-&lt;p&gt;Thanks for the read. :)&lt;/p&gt;
-&lt;p&gt;You can reach out to me at &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;@kuldeepdotexe&lt;/a&gt;.&lt;/p&gt;
-</content>
-    </item>
-    
+    <lastBuildDate>Sat, 15 Jan 2022 20:50:13 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/idor/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>120 Days of High Frequency Hunting</title>
       <link>https://kuldeep.io/posts/120-days-of-high-frequency-hunting/</link>
@@ -450,49 +325,6 @@ I and @caffeinevulns took inspiration from @infosec_au&amp;rsquo;s blog about hi
 &lt;p&gt;Reported the issue and won the quality round.&lt;/p&gt;
 &lt;p&gt;Thanks for the read. :)&lt;/p&gt;
 &lt;p&gt;You can reach out to me at &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;@kuldeepdotexe&lt;/a&gt;.&lt;/p&gt;
-</content>
-    </item>
-    
-    <item>
-      <title>Prove Yourself as 1337 Null Ahmedabad</title>
-      <link>https://kuldeep.io/posts/prove-yourself-as-1337-null-ahmedabad/</link>
-      <pubDate>Sat, 15 Jan 2022 18:35:22 +0530</pubDate>
-      
-      <guid>https://kuldeep.io/posts/prove-yourself-as-1337-null-ahmedabad/</guid>
-      <description>Null community is an open security community where pen-testers, bug bounty hunters, students, security researchers come under the same roof and exchange knowledge. One of its chapter in Ahmedabad had CTF this 22nd. They made the CTF online and I was a volunteer of the community so it was obvious I was going to participate in it.
-It had 6 challenges in total. Two web challenges, one binary exploitation, one steganography, one crypto, and one steganography + cryptography combined.</description>
-      <content>&lt;p&gt;Null community is an open security community where pen-testers, bug bounty hunters, students, security researchers come under the same roof and exchange knowledge. One of its chapter in Ahmedabad had CTF this 22nd. They made the CTF online and I was a volunteer of the community so it was obvious I was going to participate in it.&lt;/p&gt;
-&lt;p&gt;It had 6 challenges in total. Two web challenges, one binary exploitation, one steganography, one crypto, and one steganography + cryptography combined.&lt;/p&gt;
-&lt;p&gt;This writeup is about a web challenge named &amp;ldquo;Prove yourself as 1337&amp;rdquo;. It was of 550 points, the highest of all challenges in the CTF. And looking at the difficulty it had, I think that even 550 points are less.&lt;/p&gt;
-&lt;p&gt;Initially, there was an URL which leads to a web application. Below is the initial description of the challenge. It was sure that brute-forcing the parameters isn&amp;rsquo;t going to work as it was written: &amp;ldquo;don&amp;rsquo;t waste time&amp;rdquo;.  Also, it was said that: &amp;ldquo;A variable can lead to source code of index.php if set&amp;rdquo;. So, it gave us a hint that the variable might be boolean.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/challenge.png&#34; alt=&#34;Challenge&#34;&gt;&lt;/p&gt;
-&lt;p&gt;Now, as opening the URL gives, there was the following screen:&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/webroot.png&#34; alt=&#34;webroot&#34;&gt;&lt;/p&gt;
-&lt;p&gt;It took two inputs, one username, and password. I supplied 1337 and 1337 as username, password pair and I found a really interesting thing in the URL. So, two inputs were visible but it actually took 5 inputs out of which three were hidden.&lt;/p&gt;
-&lt;p&gt;The URL was: &lt;a href=&#34;http://165.22.218.145/buggy/?username=1337&amp;amp;password=1337&amp;amp;random1=65616f96af8b27efd6c16f5249e58700&amp;amp;random2=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=0&#34;&gt;http://165.22.218.145/buggy/?username=1337&amp;amp;password=1337&amp;amp;random1=65616f96af8b27efd6c16f5249e58700&amp;amp;random2=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=0&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;Here, username and password were as it were. random1 and random2 were some random hash like values. And then there was a parameter named &amp;ldquo;source&amp;rdquo; and it was set to 0. I quickly figured out that this has something to do with the source code. I remembered the challenge description and it said, &amp;ldquo;A variable can lead to source code of index.php if set&amp;rdquo; so now I knew that I need to &amp;ldquo;set&amp;rdquo; this variable. I changed the value of it to 1 from 0 and it showed me the source code.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/source-code.png&#34; alt=&#34;Source Code&#34;&gt;&lt;/p&gt;
-&lt;p&gt;I saw that there was a lot of md5 logic going on in the source code. I was wondering if this was a web challenge or a crypto challenge.&lt;/p&gt;
-&lt;p&gt;The flags were coming from some other PHP script called as &amp;ldquo;flag.php&amp;rdquo;. I tried accessing it directly but no luck! There were three flags in total which; when concatenated, forms one final flag. Each of these individual flags had some conditions behind them. Which means the flag will be concatenated only if the condition falls true. There were three different conditions.&lt;/p&gt;
-&lt;h3 id=&#34;condition-1&#34;&gt;Condition #1&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-1.png&#34; alt=&#34;Condition 1&#34;&gt;&lt;/p&gt;
-&lt;p&gt;In this, flag1 was concatenated to final_flag only if random1 and random2 variables were not identical but the hash of random1 variable concatenated with some secret variable called salt was identical to the hash of random2 variable concatenated with the salt. But one of the aims of hashes says that &amp;ldquo;Two different values must not produce the same hash&amp;rdquo;. So, looks like we are stuck here, or are we? However, here is an attack called hash collision attack which I quickly remembered in which two different values produce the exact same hash. I googled a lot to find such strings and I actually found them. But they were in binary format and we cannot pass it in the query string. I spent hours and hours searching for such strings but no luck.&lt;/p&gt;
-&lt;p&gt;Then the other web challenge clicked in my head which was exploiting the type conversion of PHP(but not type juggling). Type conversion fails and gives a warning when supplying the incompatible type and did not throw and error. I checked in the PHP documentation of md5() and saw it takes a string as an input. Then I wondered what if I supply array as an input to the function like I did in the previous challenge. I changed &lt;code&gt;random1=65616f96af8b27efd6c16f5249e58700 and random2=7ec7e3cb456c9f07229df3fd1127ed42&lt;/code&gt; to &lt;code&gt;random1[]=65616f96af8b27efd6c16f5249e58700 and random2[]=7ec7e3cb456c9f07229df3fd1127ed42&lt;/code&gt; and the application threw the first part of the flag.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-1.png&#34; alt=&#34;Flag 1&#34;&gt;&lt;/p&gt;
-&lt;h3 id=&#34;condition-2&#34;&gt;Condition #2&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-2.png&#34; alt=&#34;Condition 2&#34;&gt;&lt;/p&gt;
-&lt;p&gt;Here, the first condition satisfies if both username and password are not empty. Then, username and password are concatenated and stored in a string called concat. Now, the second condition satisfies if the md5 hash of the concatenated string was equal to the string itself. But how is this even possible? We have learned that hash(string) ≠ string. But here, another PHP specific vulnerability lies here. And that was, yes as you have already guessed it, &amp;ldquo;Type Juggling&amp;rdquo;. Type juggling was introduced as a feature of PHP but turned out to be a critical authentication vulnerability. It means, type of variable is decided upon the context it is used in. Which means, if (&amp;ldquo;0e001234&amp;rdquo;==&amp;ldquo;0&amp;rdquo;) {} will return true even if they are not the exact same values.&lt;/p&gt;
-&lt;p&gt;So, I needed to find such a value that it&amp;rsquo;s hash&amp;rsquo;s first one-digit are the same as the value&amp;rsquo;s first digit in order to make the condition true. It was a difficult process to do it all manually so I created a simple python script and ran it which eventually crashed my computer. I googled a lot to find such strings but could not find anything. I was out of luck. Then I decided to take a hint from the CTF platform which cost me 150 points but in turn returned me a &amp;ldquo;working&amp;rdquo; script which did not crash my computer. I ran it and in like 10 minutes, the number was there!!!&lt;/p&gt;
-&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;username=0e2159&amp;amp;password=62017&amp;amp;random1[]=65616f96af8b27efd6c16f5249e58700&amp;amp;random2[]=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=1
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;I put half of the number in username variable and the other half in password variable as they both were concatenated. And boom! Got the second part of the flag!&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-2.png&#34; alt=&#34;Flag 2&#34;&gt;&lt;/p&gt;
-&lt;h3 id=&#34;condition-3&#34;&gt;Condition #3&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/condition-3.png&#34; alt=&#34;Condition 3&#34;&gt;&lt;/p&gt;
-&lt;p&gt;First of all, here is a call to the &lt;code&gt;parse_str()&lt;/code&gt; function which parses query string into an array called as res. I could not think of anything in this part of the challenge. I scratched my head for hours. Then I looked up for vulnerabilities in &lt;code&gt;parse_str()&lt;/code&gt; function as the last attempt. And it actually had a vulnerability. So, we can overwrite any already existing variable by passing it in a query string which was later parsed by &lt;code&gt;parse_str()&lt;/code&gt;. So, I supplied  the hash given in the source code as the value of the hashed variable using the query string:&lt;/p&gt;
-&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;username=0e2159&amp;amp;password=62017&amp;amp;random1[]=65616f96af8b27efd6c16f5249e58700&amp;amp;random2[]=7ec7e3cb456c9f07229df3fd1127ed42&amp;amp;source=1&amp;amp;hashed=ba6e12df1edab45f11f70b547dba9959
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;And, finally, after hours of hard work, the flag was there!!!&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/flag-3.png&#34; alt=&#34;Flag 3&#34;&gt;&lt;/p&gt;
-&lt;p&gt;It was a really fun challenge to solve. Kudos to everyone who made this CTF possible.&lt;/p&gt;
 </content>
     </item>
     

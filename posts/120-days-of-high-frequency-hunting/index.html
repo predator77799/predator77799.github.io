@@ -6,9 +6,8 @@
   
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Hi, guys!
-I and @caffeinevulns took inspiration from @infosec_au&amp;rsquo;s blog about high-frequency bug hunting and how he found 120 bugs in 120 days. After going through the blog, we decided to try to find 120 bugs in 120 days. Although we did not exactly succeed in finding 120 bugs in 120 days, we still found pretty nice bugs. This blog will be a transparent disclosure of all the bugs I found on Synack Red Team during these 120 days and a small write-up about the techniques I used to find/exploit them." />
-<meta name="keywords" content=", " />
+<meta name="description" content="A writeup about my journey to find 120 bugs in 120 days" />
+<meta name="keywords" content="SQL injection, SQLi, 120 days, 120 bugs, SSRF, Server Side Request Forgery, XSS, Cross Site Scripting, LFI, Local File Inclusion, Path Traversal, IDOR, Insecure Direct Object Reference" />
 <meta name="robots" content="noodp" />
 <link rel="canonical" href="https://kuldeep.io/posts/120-days-of-high-frequency-hunting/" />
 
@@ -42,8 +41,7 @@ I and @caffeinevulns took inspiration from @infosec_au&amp;rsquo;s blog about hi
 <meta property="og:locale" content="en" />
 <meta property="og:type" content="article" />
 <meta property="og:title" content="120 Days of High Frequency Hunting">
-<meta property="og:description" content="Hi, guys!
-I and @caffeinevulns took inspiration from @infosec_au&amp;rsquo;s blog about high-frequency bug hunting and how he found 120 bugs in 120 days. After going through the blog, we decided to try to find 120 bugs in 120 days. Although we did not exactly succeed in finding 120 bugs in 120 days, we still found pretty nice bugs. This blog will be a transparent disclosure of all the bugs I found on Synack Red Team during these 120 days and a small write-up about the techniques I used to find/exploit them." />
+<meta property="og:description" content="A writeup about my journey to find 120 bugs in 120 days" />
 <meta property="og:url" content="https://kuldeep.io/posts/120-days-of-high-frequency-hunting/" />
 <meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
 
@@ -104,14 +102,26 @@ I and @caffeinevulns took inspiration from @infosec_au&amp;rsquo;s blog about hi
       <span class="post-author">:: Kuldeep Pandya</span>
     
     
+      <span class="post-reading-time">:: 10 min read (2041 words)</span>
+    
   </div>
 
   
   <span class="post-tags">
     
-    #<a href="https://kuldeep.io/tags/"></a>&nbsp;
+    #<a href="https://kuldeep.io/tags/sqli/">SQLi</a>&nbsp;
     
-    #<a href="https://kuldeep.io/tags/"></a>&nbsp;
+    #<a href="https://kuldeep.io/tags/lfi/">LFI</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/xss/">XSS</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/ssrf/">SSRF</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/idor/">IDOR</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/acpv/">ACPV</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/pathtraversal/">PathTraversal</a>&nbsp;
     
   </span>
   
@@ -442,6 +452,13 @@ I and @caffeinevulns took inspiration from @infosec_au&amp;rsquo;s blog about hi
         <hr />
     </div>
     <div class="pagination__buttons">
+        
+        <span class="button previous">
+            <a href="https://kuldeep.io/posts/path-traversal-paradise/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Path Traversal Paradise</span>
+            </a>
+        </span>
         
         
         <span class="button next">

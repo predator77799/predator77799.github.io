@@ -6,7 +6,132 @@
     <description>Recent content on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 15 Jan 2022 20:50:13 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 23 Jan 2022 22:37:16 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Path Traversal Paradise</title>
+      <link>https://kuldeep.io/posts/path-traversal-paradise/</link>
+      <pubDate>Sun, 23 Jan 2022 22:37:16 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/path-traversal-paradise/</guid>
+      <description>Hi, guys!
+This blog will be about all the different kinds of Path Traversals and Local File Inclusion vulnerabilities that I have found in Synack Red Team.
+After hacking on Synack Red Team for approximately 9 months, I came to realise that Path Traversal and LFI like vulnerabilities are very common. I reported few authenticated vulnerabilities and few unauthenticated. However, I will try to cover both kinds of vulnerabilities.
+Before moving forward, I&amp;rsquo;d like to list all my Path Traversal/LFI submissions.</description>
+      <content>&lt;p&gt;Hi, guys!&lt;/p&gt;
+&lt;p&gt;This blog will be about all the different kinds of Path Traversals and Local File Inclusion vulnerabilities that I have found in Synack Red Team.&lt;/p&gt;
+&lt;p&gt;After hacking on Synack Red Team for approximately 9 months, I came to realise that Path Traversal and LFI like vulnerabilities are very common. I reported few authenticated vulnerabilities and few unauthenticated. However, I will try to cover both kinds of vulnerabilities.&lt;/p&gt;
+&lt;p&gt;Before moving forward, I&amp;rsquo;d like to list all my Path Traversal/LFI submissions.&lt;/p&gt;
+&lt;h3 id=&#34;submissions&#34;&gt;Submissions&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Submission&lt;/th&gt;
+&lt;th&gt;Status&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#path-traversal-vulnerability-leads-to-source-code-disclosure&#34;&gt;Path Traversal Vulnerability Leads To Source Code Disclosure&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Accepted&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#local-file-inclusion-in-vmware-vcenter-running-at-redacted&#34;&gt;Local File Inclusion in VMWare VCenter running at [REDACTED]&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Accepted&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#spring-boot-path-traversal---cve-2020-5410&#34;&gt;Spring Boot Path Traversal - CVE-2020-5410&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Accepted&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Accepted&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Rejected (Duplicated my previous report)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Rejected (Duplicated in quality period)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href=&#34;https://kuldeep.io/posts/path-traversal-paradise/#path-traversal-allows-to-download-licence-keys&#34;&gt;Path Traversal Allows To Download Licence Keys&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Accepted&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;descriptions&#34;&gt;Descriptions&lt;/h3&gt;
+&lt;h4 id=&#34;path-traversal-vulnerability-leads-to-source-code-disclosure&#34;&gt;Path Traversal Vulnerability Leads To Source Code Disclosure&lt;/h4&gt;
+&lt;p&gt;This was the very first Path Traversal vulnerability that I had found in Synack Red Team. Also, even though I was pretty new to the platform and to the whole bug bounty thing in general, this report won the quality round so I am very proud of this particular report.&lt;/p&gt;
+&lt;p&gt;After logging into the application, the application provided a bunch of sections like manage vendors, manage inventory, etc with a bunch of functionalities.&lt;/p&gt;
+&lt;p&gt;Upon further inspecting these sections, I came across an interesting functionality that involved importing the data. The file was named &lt;code&gt;DataImport.view&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/DataImport.png&#34; alt=&#34;DataImport.view&#34;&gt;&lt;/p&gt;
+&lt;p&gt;I tried getting RCE by uploading an ASPX web shell and it actually worked! Reported it and that report got accepted too! However, that&amp;rsquo;s a different story. We want to discuss Path Traversals here and not RCEs.&lt;/p&gt;
+&lt;p&gt;So, after successfully uploading a file, we were given the functionality to read the file.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/ReadFile.png&#34; alt=&#34;ReadFile&#34;&gt;&lt;/p&gt;
+&lt;p&gt;After clicking the &amp;ldquo;&lt;strong&gt;ReadFile&lt;/strong&gt;&amp;rdquo; button, it filled the file name field to the current uploaded filename by default. However, we had the ability to change the file name.&lt;/p&gt;
+&lt;p&gt;Now, I just had to provide a valid file name. For this, I used the &lt;code&gt;Auth.aspx&lt;/code&gt; to which the login request was sent. I could be sure that this exists because a login request was sent to this file and it resided in the webroot.&lt;/p&gt;
+&lt;p&gt;So, I tried to do path traversal using payloads like &lt;code&gt;../Auth.aspx&lt;/code&gt; and &lt;code&gt;../../Auth.aspx&lt;/code&gt; etc.&lt;/p&gt;
+&lt;p&gt;And, after three &lt;code&gt;../&lt;/code&gt; sequences, the file was actually returned!&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/Auth.png&#34; alt=&#34;Auth.aspx&#34;&gt;&lt;/p&gt;
+&lt;p&gt;The response looked like this:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/AuthResponse.png&#34; alt=&#34;AuthResponse&#34;&gt;&lt;/p&gt;
+&lt;p&gt;The file was broken because some sort of XML parsing was done on it. I still went ahead and reported it because it was still a path traversal issue and disclosed source code contents.&lt;/p&gt;
+&lt;p&gt;I could do more creative things here like pulling more sensitive files but I stopped here because very limited time was left in the quality round. I initially did not care much for this vulnerability as I had already reported an RCE there but then quickly made a report in under 15 minutes putting together all my PoCs and I still won the quality round.&lt;/p&gt;
+&lt;h4 id=&#34;local-file-inclusion-in-vmware-vcenter-running-at-redacted&#34;&gt;Local File Inclusion in VMWare VCenter running at [REDACTED]&lt;/h4&gt;
+&lt;p&gt;This was the classic VMWare VCenter &lt;code&gt;/eam/vib&lt;/code&gt; LFI vulnerability.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;/eam/vib&lt;/code&gt; endpoint in VMWare VCenter instances takes a parameter named &lt;code&gt;id&lt;/code&gt; in the GET request. The value to this &lt;code&gt;id&lt;/code&gt; parameter is a file name that will be retrieved by the VCenter instance and will be given back in the response.&lt;/p&gt;
+&lt;p&gt;There are already many resources regarding this particular vulnerability and I do not think much is to be said about it in this particular article.&lt;/p&gt;
+&lt;p&gt;I used the following payload to retrieve the &lt;code&gt;hosts&lt;/code&gt; file off the remote server:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/eam/vib?id=C:/WINDOWS/System32/drivers/etc/hosts
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;There were some IP to host mappings in the &lt;code&gt;hosts&lt;/code&gt; file which I thought was enough for impact but with creativity, more could have been achieved.&lt;/p&gt;
+&lt;p&gt;I reported the issue during the quality round and this also won the QR.&lt;/p&gt;
+&lt;h4 id=&#34;spring-boot-path-traversal---cve-2020-5410&#34;&gt;Spring Boot Path Traversal - CVE-2020-5410&lt;/h4&gt;
+&lt;p&gt;This was a known vulnerability in Spring Boot Cloud Config server. For PoC, I referred to this article here: &lt;a href=&#34;http://www.jrasp.com/case/CVE-2020-5410.html&#34;&gt;http://www.jrasp.com/case/CVE-2020-5410.html&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;That article talks in detail about the vulnerability and also explains the source code.&lt;/p&gt;
+&lt;p&gt;I did not read that much and simply took the PoC from there and used it on the target that I had for testing. And the exploit worked!&lt;/p&gt;
+&lt;p&gt;I used the same payload as in the PoC which is:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%252Fpasswd%23foo/development
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The above payload retrieves the &lt;code&gt;/etc/passwd&lt;/code&gt; file.&lt;/p&gt;
+&lt;p&gt;However, this was Java and one odd thing about Java Path Traversals/LFIs is that if you specify a directory instead of a file for opening, it will actually list the content of that directory.&lt;/p&gt;
+&lt;p&gt;So, for example, if I did not know what files were in the &lt;code&gt;/etc&lt;/code&gt; directory, I would simply use the following payload to list all the files:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%23foo/development
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This is just the previous payload with the trailing &lt;code&gt;/passwd&lt;/code&gt; removed. Now, we are just listing the contents of the &lt;code&gt;/etc&lt;/code&gt; directory.&lt;/p&gt;
+&lt;p&gt;I used this feature to list the contents of the root directory in the affected Linux server. In the root directory, I found a file named &lt;code&gt;application.jar&lt;/code&gt; which was potentially the source code of the currently running Spring Boot Cloud Config server.&lt;/p&gt;
+&lt;p&gt;Also, the root directory had a file &lt;code&gt;.dockerenv&lt;/code&gt; so I was quite sure that I was in a docker container.&lt;/p&gt;
+&lt;p&gt;However, Synack Red Team has the stop-and-report policy according to which, we are not supposed to do post-exploitation.&lt;/p&gt;
+&lt;p&gt;I reported the issue during the 8 hours long quality period. And nobody had checked for this particular vulnerability and mine was the only report in QR.&lt;/p&gt;
+&lt;h4 id=&#34;local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/h4&gt;
+&lt;p&gt;I have already discussed this vulnerability in my previous article and you can find it here: &lt;a href=&#34;https://kuldeep.io/posts/120-days-of-high-frequency-hunting/#local-file-inclusion-in-downloadphp&#34;&gt;Local File Inclusion In download.php&lt;/a&gt;&lt;/p&gt;
+&lt;h4 id=&#34;path-traversal-allows-to-download-licence-keys&#34;&gt;Path Traversal Allows To Download Licence Keys&lt;/h4&gt;
+&lt;p&gt;This path traversal was also very interesting. This was in a custom-built application and it did not require any authentication.&lt;/p&gt;
+&lt;p&gt;When we visited the webroot, the web application redirected us to the login page.&lt;/p&gt;
+&lt;p&gt;The login page was custom built and there was a brand logo along with the login page so I cannot show you the screenshots.&lt;/p&gt;
+&lt;p&gt;Upon visiting the login page, a request to the &lt;code&gt;/web/product_logo&lt;/code&gt; endpoint was sent. The request contained a GET parameter named &lt;code&gt;logo&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Overall, the request URL looked like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/web/product_logo?logo=logo.png
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The parameter &lt;code&gt;logo&lt;/code&gt; took a file name as the input and returned that particular file in the response. In this case, it was &lt;code&gt;logo.png&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Now, as this is functionality to read files, there may be a potential LFI/Path Traversal here. So, I changed the file name to random file names like &lt;code&gt;index.html&lt;/code&gt;, &lt;code&gt;index.php&lt;/code&gt;, &lt;code&gt;index.js&lt;/code&gt; etc. However, none of them worked.&lt;/p&gt;
+&lt;p&gt;So, I ran &lt;code&gt;ffuf&lt;/code&gt; hoping to discover more files but it was a failure. I used the &lt;code&gt;raft-small-files-lowercase.txt&lt;/code&gt; provided in the &lt;a href=&#34;https://github.com/danielmiessler/SecLists&#34;&gt;SecLists&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;I did not know the underlying technology which is used so it was quite painful to enumerate files.&lt;/p&gt;
+&lt;p&gt;However, I knew it was a Windows box because of the case-insensitive directory structure. What it basically means is that, in Windows, &lt;code&gt;WinDows&lt;/code&gt; and &lt;code&gt;Windows&lt;/code&gt; are the same directories/files as it is not case sensitive. And when I was doing my recon, I received the same response when I did &lt;code&gt;/web&lt;/code&gt; or &lt;code&gt;/Web&lt;/code&gt; so I was quite sure it was a Windows box.&lt;/p&gt;
+&lt;p&gt;There are other ways to determine this too but I decided to assume it was Windows.&lt;/p&gt;
+&lt;p&gt;Same as my past submissions, I decided to read the &lt;code&gt;C:/WINDOWS/System32/drivers/etc/hosts&lt;/code&gt; file of the remote server.&lt;/p&gt;
+&lt;p&gt;So, I used a path traversal payload and the final URL looked like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/web/product_logo?logo=../WINDOWS/System32/drivers/etc/hosts
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;However, one &lt;code&gt;../&lt;/code&gt; sequence did not work. So I kept increasing the &lt;code&gt;../&lt;/code&gt; sequences.&lt;/p&gt;
+&lt;p&gt;Finally after 10 &lt;code&gt;../&lt;/code&gt; sequences, I finally hit the &lt;code&gt;hosts&lt;/code&gt; file and the server retrieved it for us.&lt;/p&gt;
+&lt;p&gt;The final payload looked like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;https://[REDACTED]/web/product_logo?logo=../../../../../../../../../../WINDOWS/System32/drivers/etc/hosts
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Although this was enough for PoC, I decided to dig deeper with this path traversal.&lt;/p&gt;
+&lt;p&gt;When I was fuzzing the application, I encountered an error that disclosed the full path to the webroot.&lt;/p&gt;
+&lt;p&gt;I ran &lt;code&gt;ffuf&lt;/code&gt; again but now in the webroot of the server using the path traversal that I had found. This way, I was able to enumerate a file named &lt;code&gt;LICENSE&lt;/code&gt; that had license keys of the application.&lt;/p&gt;
+&lt;p&gt;I reported the issue with all my findings and the report won the QR.&lt;/p&gt;
+&lt;p&gt;Thanks for the read. :)&lt;/p&gt;
+&lt;p&gt;You can reach out to me at &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;@kuldeepdotexe&lt;/a&gt;.&lt;/p&gt;
+</content>
+    </item>
+    
     <item>
       <title>120 Days of High Frequency Hunting</title>
       <link>https://kuldeep.io/posts/120-days-of-high-frequency-hunting/</link>

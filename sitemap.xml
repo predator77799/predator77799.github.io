@@ -2,20 +2,45 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://kuldeep.io/</loc>
+    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/lfi/</loc>
+    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/posts/path-traversal-paradise/</loc>
+    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/pathtraversal/</loc>
+    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/posts/</loc>
+    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/</loc>
+    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
+  </url><url>
     <loc>https://kuldeep.io/posts/120-days-of-high-frequency-hunting/</loc>
     <lastmod>2022-01-15T20:50:13+05:30</lastmod>
   </url><url>
-    <loc>https://kuldeep.io/</loc>
+    <loc>https://kuldeep.io/tags/acpv/</loc>
     <lastmod>2022-01-15T20:50:13+05:30</lastmod>
   </url><url>
-    <loc>https://kuldeep.io/posts/</loc>
+    <loc>https://kuldeep.io/tags/idor/</loc>
+    <lastmod>2022-01-15T20:50:13+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/sqli/</loc>
+    <lastmod>2022-01-15T20:50:13+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/ssrf/</loc>
+    <lastmod>2022-01-15T20:50:13+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/xss/</loc>
     <lastmod>2022-01-15T20:50:13+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/posts/prove-yourself-as-1337-null-ahmedabad/</loc>
     <lastmod>2022-01-15T18:35:22+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/categories/</loc>
-  </url><url>
-    <loc>https://kuldeep.io/tags/</loc>
   </url>
 </urlset>
