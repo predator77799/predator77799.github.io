@@ -6,7 +6,17 @@
     <description>Recent content in Tags on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 23 Jan 2022 22:37:16 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 04 Apr 2022 22:14:09 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>NoSQL</title>
+      <link>https://kuldeep.io/tags/nosql/</link>
+      <pubDate>Mon, 04 Apr 2022 22:14:09 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/tags/nosql/</guid>
+      <description></description>
+      <content></content>
+    </item>
+    
     <item>
       <title>LFI</title>
       <link>https://kuldeep.io/tags/lfi/</link>

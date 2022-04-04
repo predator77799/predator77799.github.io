@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>NoSQL on kuldeepdotexe&#39;s blog</title>
+    <link>https://kuldeep.io/tags/nosql/</link>
+    <description>Recent content in NoSQL on kuldeepdotexe&#39;s blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 04 Apr 2022 22:14:09 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/nosql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>NoSQL Injection in Plain Sight</title>
+      <link>https://kuldeep.io/posts/nosql-injection-in-plain-sight/</link>
+      <pubDate>Mon, 04 Apr 2022 22:14:09 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/nosql-injection-in-plain-sight/</guid>
+      <description>Hello, folks!
+This article is going to be about my recent discovery on Synack Red Team which was a NoSQL injection.
+I asked if I should do a write-up or not in my Twitter and a lot of you responded with a writeup. Therefore, I am writing this article to showcase the finding.
+Please note that this will not be a technical guide on why NoSQL injections exist and their breakdown.</description>
+      <content>&lt;p&gt;Hello, folks!&lt;/p&gt;
+&lt;p&gt;This article is going to be about my recent discovery on Synack Red Team which was a NoSQL injection.&lt;/p&gt;
+&lt;p&gt;I asked if I should do a write-up or not in my &lt;a href=&#34;https://twitter.com/kuldeepdotexe/status/1507023576888934406?s=20&amp;amp;t=nWRb1rUsGdZzuTHbcgSotA&#34;&gt;Twitter&lt;/a&gt; and a lot of you responded with a writeup. Therefore, I am writing this article to showcase the finding.&lt;/p&gt;
+&lt;p&gt;Please note that this will not be a technical guide on why NoSQL injections exist and their breakdown. I will just share the thought process and approach that I had when testing this particular application.&lt;/p&gt;
+&lt;p&gt;So, when I got onboarded to this program, it had one application in scope. It was an authenticated test and credentials were provided by the client. Synack&amp;rsquo;s quality period was also going on and it had approximately 8 hours.&lt;/p&gt;
+&lt;p&gt;As always, I fired up Burp Suite, opened Burp&amp;rsquo;s in-built browser, went to the login page, and started intercepting.&lt;/p&gt;
+&lt;p&gt;I was closely monitoring every request after clicking &amp;ldquo;Login&amp;rdquo;.&lt;/p&gt;
+&lt;p&gt;First, there was a login request to the &lt;code&gt;/oauth2/token&lt;/code&gt; endpoint. This endpoint returned the JWT token that allowed us to access the application APIs. However, no fun here.&lt;/p&gt;
+&lt;p&gt;After the login request, there was another request to a metadata endpoint. This also was not very interesting as the endpoint returned data that was going to be used to render the frontend.&lt;/p&gt;
+&lt;p&gt;But after the first two requests, a request to the &lt;code&gt;/api/[CLIENT_NAME]/Customers&lt;/code&gt;  was sent. This request in particular was very interesting as it had a parameter named &lt;code&gt;$filter&lt;/code&gt;. And the parameter had a long NoSQL string inside it.&lt;/p&gt;
+&lt;p&gt;The request looked like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;GET /api/[CLIENT_NAME]/Customers?$filter=(id%20eq%202)%20and%20((is_active%20eq%20%27Y%27)%20and%20(is_deleted%20eq%20%27N%27))&amp;amp;$orderby=name HTTP/1.1
+Host: [TARGET_APPLICATION]
+...
+[SNIPPED_BECAUSE_IRRELEVANT]
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;If you look at the value of the &lt;code&gt;$filter&lt;/code&gt; parameter, the URL encoded string decodes to the following filter:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;(id eq 2) and ((is_active eq &amp;#39;Y&amp;#39;) and (is_deleted eq &amp;#39;N&amp;#39;))
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This endpoint returned basic customer information like customer name, last login date, etc.&lt;/p&gt;
+&lt;p&gt;You can see the full request-response pair below:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/customers.png&#34; alt=&#34;Request - Response pair&#34;&gt;&lt;/p&gt;
+&lt;p&gt;I had read a few blogs on NoSQL injection in past. Especially after the HackIM CTF. So, I figured this was something related to NoSQL.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;eq&lt;/code&gt; in the &lt;code&gt;$filter&lt;/code&gt; is the same as SQL&amp;rsquo;s &lt;code&gt;=&lt;/code&gt; or &lt;code&gt;LIKE&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;So, what the endpoint really did was that it read the value of &lt;code&gt;$filter&lt;/code&gt; and then it evaluated the filter and retrieved the data specified in the filter.&lt;/p&gt;
+&lt;p&gt;To break down the parameters in the above filter,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;id&lt;/code&gt; (This was the customer ID. Our current user had the customer ID of 2. If I had changed it to 1 instead of 2, this would have been an easy IDOR.)&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;is_active&lt;/code&gt; (This was an attribute our user had. The &lt;code&gt;is_active&lt;/code&gt; attribute would be &lt;code&gt;Y&lt;/code&gt; if our user was active and &lt;code&gt;N&lt;/code&gt; if not.)&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;id_deleted&lt;/code&gt; (This was another attribute to specify if our user was deleted or not.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;So, the &lt;code&gt;/api/[CLIENT_NAME]/Customers&lt;/code&gt; endpoint took the filter and returned our own user(user ID 2)&amp;rsquo;s data &lt;strong&gt;if and only if&lt;/strong&gt; our user was active &lt;strong&gt;and&lt;/strong&gt; not deleted.&lt;/p&gt;
+&lt;p&gt;For testing, I removed the later part which was &lt;code&gt;((is_active eq &#39;Y&#39;) and (is_deleted eq &#39;N&#39;))&lt;/code&gt; and just sent the following filter:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$filter=(id eq 2)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The application happily returned my data without erroring out.&lt;/p&gt;
+&lt;p&gt;As I was aware that this was NoSQL, I googled &amp;ldquo;NoSQL wildcards&amp;rdquo; and tried to play around with wild cards. I came across the following documentation by MongoDB on wildcard indices: &lt;a href=&#34;https://www.mongodb.com/docs/manual/core/index-wildcard/&#34;&gt;https://www.mongodb.com/docs/manual/core/index-wildcard/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;I played around with wild cards doing things like &lt;code&gt;$filter=($** eq 2)&lt;/code&gt; and some of it worked meanwhile some of it did not.&lt;/p&gt;
+&lt;p&gt;I also tried to forcefully put wild cards in the value and crafted this payload: &lt;code&gt;$filter=(id eq $**)&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;But it did not have a valid syntax so it also failed.&lt;/p&gt;
+&lt;p&gt;I honestly did not put much effort into wildcards as I was not getting the syntax right.&lt;/p&gt;
+&lt;p&gt;Then a thought popped into my mind. There was one operator in the filter called &lt;code&gt;eq&lt;/code&gt;. What if I use some other operator? Is it possible to do it?&lt;/p&gt;
+&lt;p&gt;I googled &amp;ldquo;MongoDB syntax&amp;rdquo; which led me to this awesome documentation again by MongoDB: &lt;a href=&#34;https://www.mongodb.com/docs/manual/tutorial/query-documents/&#34;&gt;https://www.mongodb.com/docs/manual/tutorial/query-documents/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/querydocuments.png&#34; alt=&#34;Query Documents&#34;&gt;&lt;/p&gt;
+&lt;p&gt;The above documentation very nicely explains MongoDB syntax with SQL alternative syntax to properly understand it.&lt;/p&gt;
+&lt;p&gt;However, after going a little further into the documentation, the documentation linked to another documentation page which was about &amp;ldquo;Query and Projection Operators&amp;rdquo;. You can find it here: &lt;a href=&#34;https://www.mongodb.com/docs/manual/reference/operator/query/&#34;&gt;https://www.mongodb.com/docs/manual/reference/operator/query/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/reference.png&#34; alt=&#34;Reference&#34;&gt;&lt;/p&gt;
+&lt;p&gt;And, this page was exactly what I needed to craft my exploit! The page listed down all the MongoDB operators and their use cases.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/operators.png&#34; alt=&#34;Operators&#34;&gt;&lt;/p&gt;
+&lt;p&gt;I decided to go with the &lt;code&gt;gt&lt;/code&gt; operator because I wanted the endpoint to return user details of all the users whose user ID was greater than 0. I had made an assumption that user IDs will start from zero.&lt;/p&gt;
+&lt;p&gt;For that purpose, I crafted the following payload:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$filter=(id gt 0)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;And the application returned the customer information of the other user as well. Sadly there were only two users and this was a pre-production application. However, I still was happy because I got the info of the other user.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/customers-pwned.png&#34; alt=&#34;Customers Pwned&#34;&gt;&lt;/p&gt;
+&lt;p&gt;I was still not happy with the results because only basic login information was leaked. Any sort of PII or sensitive information was not leaked from this endpoint.&lt;/p&gt;
+&lt;p&gt;I went back to my Burp history and found all the endpoints that had this &lt;code&gt;$filter&lt;/code&gt; parameter. I had gathered a total of 7 endpoints.&lt;/p&gt;
+&lt;p&gt;Closely inspecting the endpoints, I found one interesting endpoint called &lt;code&gt;/api/[CLIENT_NAME]/CustomerLogins&lt;/code&gt;. This was interesting because it took the filter as well as returned PII in the response.&lt;/p&gt;
+&lt;p&gt;I used the same payload as above and sent the request. And the application leaked email address, username, password hash, and phone number! And that too of the administrator user. Not just any random user.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/passworddump.png&#34; alt=&#34;Password Dump&#34;&gt;&lt;/p&gt;
+&lt;p&gt;I reported all the endpoints and wrote a nice report. There were few other reports for the same vulnerability after the QR had ended but my report managed to win.&lt;/p&gt;
+&lt;p&gt;Thanks for the read. :)&lt;/p&gt;
+&lt;p&gt;You can reach out to me at &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;@kuldeepdotexe&lt;/a&gt;.&lt;/p&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>

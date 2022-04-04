@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>NoSQL Injection in Plain Sight :: kuldeepdotexe&#39;s blog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A writeup about a recent NoSQL injection I found in Synack Red Team" />
+<meta name="keywords" content="NoSQLi, NoSQL Injection, NoSQL, Injection" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://kuldeep.io/posts/nosql-injection-in-plain-sight/" />
+
+
+
+
+<link rel="stylesheet" href="https://kuldeep.io/assets/style.css">
+
+  <link rel="stylesheet" href="https://kuldeep.io/assets/green.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://kuldeep.io/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://kuldeep.io/img/favicon/green.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="kuldeepdotexe" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="NoSQL Injection in Plain Sight">
+<meta property="og:description" content="A writeup about a recent NoSQL injection I found in Synack Red Team" />
+<meta property="og:url" content="https://kuldeep.io/posts/nosql-injection-in-plain-sight/" />
+<meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
+
+  <meta property="og:image" content="https://kuldeep.io/">
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+  <meta property="article:published_time" content="2022-04-04 22:14:09 &#43;0530 IST" />
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="green">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Kuldeep&#39;s Blog
+  </div>
+</a>
+
+    </div>
+    
+  </div>
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://kuldeep.io/posts/nosql-injection-in-plain-sight/">NoSQL Injection in Plain Sight</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2022-04-04
+        
+      </span>
+    
+    
+      <span class="post-author">:: Kuldeep Pandya</span>
+    
+    
+      <span class="post-reading-time">:: 5 min read (983 words)</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://kuldeep.io/tags/nosql/">NoSQL</a>&nbsp;
+    
+  </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>Hello, folks!</p>
+<p>This article is going to be about my recent discovery on Synack Red Team which was a NoSQL injection.</p>
+<p>I asked if I should do a write-up or not in my <a href="https://twitter.com/kuldeepdotexe/status/1507023576888934406?s=20&amp;t=nWRb1rUsGdZzuTHbcgSotA">Twitter</a> and a lot of you responded with a writeup. Therefore, I am writing this article to showcase the finding.</p>
+<p>Please note that this will not be a technical guide on why NoSQL injections exist and their breakdown. I will just share the thought process and approach that I had when testing this particular application.</p>
+<p>So, when I got onboarded to this program, it had one application in scope. It was an authenticated test and credentials were provided by the client. Synack&rsquo;s quality period was also going on and it had approximately 8 hours.</p>
+<p>As always, I fired up Burp Suite, opened Burp&rsquo;s in-built browser, went to the login page, and started intercepting.</p>
+<p>I was closely monitoring every request after clicking &ldquo;Login&rdquo;.</p>
+<p>First, there was a login request to the <code>/oauth2/token</code> endpoint. This endpoint returned the JWT token that allowed us to access the application APIs. However, no fun here.</p>
+<p>After the login request, there was another request to a metadata endpoint. This also was not very interesting as the endpoint returned data that was going to be used to render the frontend.</p>
+<p>But after the first two requests, a request to the <code>/api/[CLIENT_NAME]/Customers</code>  was sent. This request in particular was very interesting as it had a parameter named <code>$filter</code>. And the parameter had a long NoSQL string inside it.</p>
+<p>The request looked like this:</p>
+<pre tabindex="0"><code>GET /api/[CLIENT_NAME]/Customers?$filter=(id%20eq%202)%20and%20((is_active%20eq%20%27Y%27)%20and%20(is_deleted%20eq%20%27N%27))&amp;$orderby=name HTTP/1.1
+Host: [TARGET_APPLICATION]
+...
+[SNIPPED_BECAUSE_IRRELEVANT]
+</code></pre><p>If you look at the value of the <code>$filter</code> parameter, the URL encoded string decodes to the following filter:</p>
+<pre tabindex="0"><code>(id eq 2) and ((is_active eq &#39;Y&#39;) and (is_deleted eq &#39;N&#39;))
+</code></pre><p>This endpoint returned basic customer information like customer name, last login date, etc.</p>
+<p>You can see the full request-response pair below:</p>
+<p><img src="/customers.png" alt="Request - Response pair"></p>
+<p>I had read a few blogs on NoSQL injection in past. Especially after the HackIM CTF. So, I figured this was something related to NoSQL.</p>
+<p>The <code>eq</code> in the <code>$filter</code> is the same as SQL&rsquo;s <code>=</code> or <code>LIKE</code>.</p>
+<p>So, what the endpoint really did was that it read the value of <code>$filter</code> and then it evaluated the filter and retrieved the data specified in the filter.</p>
+<p>To break down the parameters in the above filter,</p>
+<ul>
+<li><code>id</code> (This was the customer ID. Our current user had the customer ID of 2. If I had changed it to 1 instead of 2, this would have been an easy IDOR.)</li>
+<li><code>is_active</code> (This was an attribute our user had. The <code>is_active</code> attribute would be <code>Y</code> if our user was active and <code>N</code> if not.)</li>
+<li><code>id_deleted</code> (This was another attribute to specify if our user was deleted or not.)</li>
+</ul>
+<p>So, the <code>/api/[CLIENT_NAME]/Customers</code> endpoint took the filter and returned our own user(user ID 2)&rsquo;s data <strong>if and only if</strong> our user was active <strong>and</strong> not deleted.</p>
+<p>For testing, I removed the later part which was <code>((is_active eq 'Y') and (is_deleted eq 'N'))</code> and just sent the following filter:</p>
+<pre tabindex="0"><code>$filter=(id eq 2)
+</code></pre><p>The application happily returned my data without erroring out.</p>
+<p>As I was aware that this was NoSQL, I googled &ldquo;NoSQL wildcards&rdquo; and tried to play around with wild cards. I came across the following documentation by MongoDB on wildcard indices: <a href="https://www.mongodb.com/docs/manual/core/index-wildcard/">https://www.mongodb.com/docs/manual/core/index-wildcard/</a></p>
+<p>I played around with wild cards doing things like <code>$filter=($** eq 2)</code> and some of it worked meanwhile some of it did not.</p>
+<p>I also tried to forcefully put wild cards in the value and crafted this payload: <code>$filter=(id eq $**)</code></p>
+<p>But it did not have a valid syntax so it also failed.</p>
+<p>I honestly did not put much effort into wildcards as I was not getting the syntax right.</p>
+<p>Then a thought popped into my mind. There was one operator in the filter called <code>eq</code>. What if I use some other operator? Is it possible to do it?</p>
+<p>I googled &ldquo;MongoDB syntax&rdquo; which led me to this awesome documentation again by MongoDB: <a href="https://www.mongodb.com/docs/manual/tutorial/query-documents/">https://www.mongodb.com/docs/manual/tutorial/query-documents/</a></p>
+<p><img src="/querydocuments.png" alt="Query Documents"></p>
+<p>The above documentation very nicely explains MongoDB syntax with SQL alternative syntax to properly understand it.</p>
+<p>However, after going a little further into the documentation, the documentation linked to another documentation page which was about &ldquo;Query and Projection Operators&rdquo;. You can find it here: <a href="https://www.mongodb.com/docs/manual/reference/operator/query/">https://www.mongodb.com/docs/manual/reference/operator/query/</a></p>
+<p><img src="/reference.png" alt="Reference"></p>
+<p>And, this page was exactly what I needed to craft my exploit! The page listed down all the MongoDB operators and their use cases.</p>
+<p><img src="/operators.png" alt="Operators"></p>
+<p>I decided to go with the <code>gt</code> operator because I wanted the endpoint to return user details of all the users whose user ID was greater than 0. I had made an assumption that user IDs will start from zero.</p>
+<p>For that purpose, I crafted the following payload:</p>
+<pre tabindex="0"><code>$filter=(id gt 0)
+</code></pre><p>And the application returned the customer information of the other user as well. Sadly there were only two users and this was a pre-production application. However, I still was happy because I got the info of the other user.</p>
+<p><img src="/customers-pwned.png" alt="Customers Pwned"></p>
+<p>I was still not happy with the results because only basic login information was leaked. Any sort of PII or sensitive information was not leaked from this endpoint.</p>
+<p>I went back to my Burp history and found all the endpoints that had this <code>$filter</code> parameter. I had gathered a total of 7 endpoints.</p>
+<p>Closely inspecting the endpoints, I found one interesting endpoint called <code>/api/[CLIENT_NAME]/CustomerLogins</code>. This was interesting because it took the filter as well as returned PII in the response.</p>
+<p>I used the same payload as above and sent the request. And the application leaked email address, username, password hash, and phone number! And that too of the administrator user. Not just any random user.</p>
+<p><img src="/passworddump.png" alt="Password Dump"></p>
+<p>I reported all the endpoints and wrote a nice report. There were few other reports for the same vulnerability after the QR had ended but my report managed to win.</p>
+<p>Thanks for the read. :)</p>
+<p>You can reach out to me at <a href="https://twitter.com/kuldeepdotexe">@kuldeepdotexe</a>.</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="https://kuldeep.io/posts/path-traversal-paradise/">
+                <span class="button__text">Path Traversal Paradise</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2022 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script src="https://kuldeep.io/assets/main.js"></script>
+<script src="https://kuldeep.io/assets/prism.js"></script>
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

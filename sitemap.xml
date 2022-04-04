@@ -3,7 +3,19 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://kuldeep.io/</loc>
-    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
+    <lastmod>2022-04-04T22:14:09+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/nosql/</loc>
+    <lastmod>2022-04-04T22:14:09+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/posts/nosql-injection-in-plain-sight/</loc>
+    <lastmod>2022-04-04T22:14:09+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/posts/</loc>
+    <lastmod>2022-04-04T22:14:09+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/</loc>
+    <lastmod>2022-04-04T22:14:09+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/tags/lfi/</loc>
     <lastmod>2022-01-23T22:37:16+05:30</lastmod>
@@ -12,12 +24,6 @@
     <lastmod>2022-01-23T22:37:16+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/tags/pathtraversal/</loc>
-    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
-  </url><url>
-    <loc>https://kuldeep.io/posts/</loc>
-    <lastmod>2022-01-23T22:37:16+05:30</lastmod>
-  </url><url>
-    <loc>https://kuldeep.io/tags/</loc>
     <lastmod>2022-01-23T22:37:16+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/posts/120-days-of-high-frequency-hunting/</loc>

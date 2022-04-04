@@ -102,7 +102,7 @@
       <span class="post-author">:: Kuldeep Pandya</span>
     
     
-      <span class="post-reading-time">:: 7 min read (1385 words)</span>
+      <span class="post-reading-time">:: 7 min read (1372 words)</span>
     
   </div>
 
@@ -170,7 +170,7 @@
 <p>After logging into the application, the application provided a bunch of sections like manage vendors, manage inventory, etc with a bunch of functionalities.</p>
 <p>Upon further inspecting these sections, I came across an interesting functionality that involved importing the data. The file was named <code>DataImport.view</code>.</p>
 <p><img src="/DataImport.png" alt="DataImport.view"></p>
-<p>I tried getting RCE by uploading an ASPX web shell and it actually worked! Reported it and that report got accepted too! However, that&rsquo;s a different story. We want to discuss Path Traversals here and not RCEs.</p>
+<p>I tried getting RCE by uploading a web shell and it actually worked! However, that&rsquo;s a different story. We want to discuss Path Traversals here and not RCEs.</p>
 <p>So, after successfully uploading a file, we were given the functionality to read the file.</p>
 <p><img src="/ReadFile.png" alt="ReadFile"></p>
 <p>After clicking the &ldquo;<strong>ReadFile</strong>&rdquo; button, it filled the file name field to the current uploaded filename by default. However, we had the ability to change the file name.</p>
@@ -187,20 +187,20 @@
 <p>The <code>/eam/vib</code> endpoint in VMWare VCenter instances takes a parameter named <code>id</code> in the GET request. The value to this <code>id</code> parameter is a file name that will be retrieved by the VCenter instance and will be given back in the response.</p>
 <p>There are already many resources regarding this particular vulnerability and I do not think much is to be said about it in this particular article.</p>
 <p>I used the following payload to retrieve the <code>hosts</code> file off the remote server:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">https://[REDACTED]/eam/vib?id=C:/WINDOWS/System32/drivers/etc/hosts
-</code></pre></div><p>There were some IP to host mappings in the <code>hosts</code> file which I thought was enough for impact but with creativity, more could have been achieved.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/eam/vib?id=C:/WINDOWS/System32/drivers/etc/hosts
+</span></span></code></pre></div><p>There were some IP to host mappings in the <code>hosts</code> file which I thought was enough for impact but with creativity, more could have been achieved.</p>
 <p>I reported the issue during the quality round and this also won the QR.</p>
 <h4 id="spring-boot-path-traversal---cve-2020-5410">Spring Boot Path Traversal - CVE-2020-5410<a href="#spring-boot-path-traversal---cve-2020-5410" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
 <p>This was a known vulnerability in Spring Boot Cloud Config server. For PoC, I referred to this article here: <a href="http://www.jrasp.com/case/CVE-2020-5410.html">http://www.jrasp.com/case/CVE-2020-5410.html</a></p>
 <p>That article talks in detail about the vulnerability and also explains the source code.</p>
 <p>I did not read that much and simply took the PoC from there and used it on the target that I had for testing. And the exploit worked!</p>
 <p>I used the same payload as in the PoC which is:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%252Fpasswd%23foo/development
-</code></pre></div><p>The above payload retrieves the <code>/etc/passwd</code> file.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%252Fpasswd%23foo/development
+</span></span></code></pre></div><p>The above payload retrieves the <code>/etc/passwd</code> file.</p>
 <p>However, this was Java and one odd thing about Java Path Traversals/LFIs is that if you specify a directory instead of a file for opening, it will actually list the content of that directory.</p>
 <p>So, for example, if I did not know what files were in the <code>/etc</code> directory, I would simply use the following payload to list all the files:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%23foo/development
-</code></pre></div><p>This is just the previous payload with the trailing <code>/passwd</code> removed. Now, we are just listing the contents of the <code>/etc</code> directory.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%23foo/development
+</span></span></code></pre></div><p>This is just the previous payload with the trailing <code>/passwd</code> removed. Now, we are just listing the contents of the <code>/etc</code> directory.</p>
 <p>I used this feature to list the contents of the root directory in the affected Linux server. In the root directory, I found a file named <code>application.jar</code> which was potentially the source code of the currently running Spring Boot Cloud Config server.</p>
 <p>Also, the root directory had a file <code>.dockerenv</code> so I was quite sure that I was in a docker container.</p>
 <p>However, Synack Red Team has the stop-and-report policy according to which, we are not supposed to do post-exploitation.</p>
@@ -213,21 +213,21 @@
 <p>The login page was custom built and there was a brand logo along with the login page so I cannot show you the screenshots.</p>
 <p>Upon visiting the login page, a request to the <code>/web/product_logo</code> endpoint was sent. The request contained a GET parameter named <code>logo</code>.</p>
 <p>Overall, the request URL looked like this:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">https://[REDACTED]/web/product_logo?logo=logo.png
-</code></pre></div><p>The parameter <code>logo</code> took a file name as the input and returned that particular file in the response. In this case, it was <code>logo.png</code>.</p>
-<p>Now, as this is functionality to read files, there may be a potential LFI/Path Traversal here. So, I changed the file name to random file names like <code>index.html</code>, <code>index.php</code>, <code>index.js</code> etc. However, none of them worked.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/web/product_logo?logo=logo.png
+</span></span></code></pre></div><p>The parameter <code>logo</code> took a file name as the input and returned that particular file in the response. In this case, it was <code>logo.png</code>.</p>
+<p>Now, as this is functionality to read files, there may be a potential LFI/Path Traversal here. So, I changed the file name to <code>index</code> with different extensions. However, none of them worked.</p>
 <p>So, I ran <code>ffuf</code> hoping to discover more files but it was a failure. I used the <code>raft-small-files-lowercase.txt</code> provided in the <a href="https://github.com/danielmiessler/SecLists">SecLists</a>.</p>
 <p>I did not know the underlying technology which is used so it was quite painful to enumerate files.</p>
 <p>However, I knew it was a Windows box because of the case-insensitive directory structure. What it basically means is that, in Windows, <code>WinDows</code> and <code>Windows</code> are the same directories/files as it is not case sensitive. And when I was doing my recon, I received the same response when I did <code>/web</code> or <code>/Web</code> so I was quite sure it was a Windows box.</p>
 <p>There are other ways to determine this too but I decided to assume it was Windows.</p>
 <p>Same as my past submissions, I decided to read the <code>C:/WINDOWS/System32/drivers/etc/hosts</code> file of the remote server.</p>
 <p>So, I used a path traversal payload and the final URL looked like this:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">https://[REDACTED]/web/product_logo?logo=../WINDOWS/System32/drivers/etc/hosts
-</code></pre></div><p>However, one <code>../</code> sequence did not work. So I kept increasing the <code>../</code> sequences.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/web/product_logo?logo=../WINDOWS/System32/drivers/etc/hosts
+</span></span></code></pre></div><p>However, one <code>../</code> sequence did not work. So I kept increasing the <code>../</code> sequences.</p>
 <p>Finally after 10 <code>../</code> sequences, I finally hit the <code>hosts</code> file and the server retrieved it for us.</p>
 <p>The final payload looked like this:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">https://[REDACTED]/web/product_logo?logo=../../../../../../../../../../WINDOWS/System32/drivers/etc/hosts
-</code></pre></div><p>Although this was enough for PoC, I decided to dig deeper with this path traversal.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/web/product_logo?logo=../../../../../../../../../../WINDOWS/System32/drivers/etc/hosts
+</span></span></code></pre></div><p>Although this was enough for PoC, I decided to dig deeper with this path traversal.</p>
 <p>When I was fuzzing the application, I encountered an error that disclosed the full path to the webroot.</p>
 <p>I ran <code>ffuf</code> again but now in the webroot of the server using the path traversal that I had found. This way, I was able to enumerate a file named <code>LICENSE</code> that had license keys of the application.</p>
 <p>I reported the issue with all my findings and the report won the QR.</p>
@@ -244,6 +244,13 @@
         <hr />
     </div>
     <div class="pagination__buttons">
+        
+        <span class="button previous">
+            <a href="https://kuldeep.io/posts/nosql-injection-in-plain-sight/">
+                <span class="button__icon">←</span>
+                <span class="button__text">NoSQL Injection in Plain Sight</span>
+            </a>
+        </span>
         
         
         <span class="button next">
