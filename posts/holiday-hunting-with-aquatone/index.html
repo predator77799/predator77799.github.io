@@ -127,7 +127,7 @@ if (!doNotTrack) {
       <span class="post-author">:: Kuldeep Pandya</span>
     
     
-      <span class="post-reading-time">:: 9 min read (1825 words)</span>
+      <span class="post-reading-time">:: 9 min read (1809 words)</span>
     
   </div>
 
@@ -149,7 +149,7 @@ if (!doNotTrack) {
         <p>Hello, folks!</p>
 <p>Before going to the blog, I would like to give a little context on what happened here. I went on a workcation in April 2022 with my hacker friends (<a href="https://twitter.com/N0_M3ga_Hacks">@N0_M3ga_Hacks</a>, <a href="https://twitter.com/AyushBawariya1">@AyushBawariya1</a> and <a href="https://twitter.com/x30r_">@x30r_</a>). We hacked during the day and partied in the evenings.</p>
 <p>One day, I was telling <a href="https://twitter.com/N0_M3ga_Hacks">@N0_M3ga_Hacks</a> about how easy it was to hunt on a specific target in Synack Red Team. That it was full of vulnerabilities. I was telling him that I have found many vulnerabilities just by running <a href="https://github.com/michenriksen/aquatone">aquatone</a> on the in-scope HTTP servers. I did not even need to do a port scan to find other HTTP services on different ports like 8443,8080 etc.</p>
-<p>While telling him about this, I thought, &ldquo;Let me show him in practice&rdquo; and I actually went ahead and ran <a href="https://github.com/projectdiscovery/httpx">httpx</a> on all the in-scope IPs and found live HTTP services. Then I ran aquatone on all the IPs.</p>
+<p>While telling him about this, I thought, &ldquo;Let me show him in practice&rdquo; and I  went ahead and ran <a href="https://github.com/projectdiscovery/httpx">httpx</a> on all the in-scope IPs and found live HTTP services. Then I ran aquatone across all the IPs.</p>
 <p>From here, we found a total of 3 vulnerabilities that are as documented below:</p>
 <table>
 <thead>
@@ -176,20 +176,20 @@ if (!doNotTrack) {
 <h3 id="ssrf-allowing-to-access-google-vm-metadata">SSRF Allowing To Access Google VM Metadata<a href="#ssrf-allowing-to-access-google-vm-metadata" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
 <p>What stood out from the aquatone results was a web page test application. The web root of the application looked like the following:</p>
 <p><img src="/WebPageTest-webroot.png" alt="WebPageTest"></p>
-<p>It asked us for a website URL to &ldquo;start test&rdquo;. I did not know what kind of test this is going to perform. For example, I just gave it <a href="https://example.com">https://example.com</a> and saw what it did.</p>
+<p>It asked us for a website URL to &ldquo;start test&rdquo;. I did not know what kind of test this was going to perform. For example, I just gave it <a href="https://example.com">https://example.com</a> and saw what it did.</p>
 <p>The application did something for a while and then gave me a nice screenshot of <a href="https://example.com">https://example.com</a> with a lot of other performance metrics that I did not really know about or care enough to check.</p>
 <p><img src="/example-com-results.png" alt="https://example.com results"></p>
-<p>What I got really interested in was the screenshot of <a href="https://example.com">https://example.com</a>. The application sent a request to <a href="https://example.com">https://example.com</a> and gave us its screenshot.</p>
+<p>What I got interested in was the screenshot of <a href="https://example.com">https://example.com</a>. The application sent a request to <a href="https://example.com">https://example.com</a> and gave us its screenshot.</p>
 <p>This is the intended behavior of the application and the ability to request arbitrary URLs is not a vulnerability in itself. The vulnerability arises when the application makes requests to restricted URLs like cloud metadata URLs or localhost that DO have sensitive information exposed.</p>
 <p>Happy with what I saw, I gave it https://127.0.0.1 to &ldquo;start test&rdquo;.</p>
 <p>It again did something for a while and gave me the results. This time, the results were quite disappointing.</p>
 <p><img src="/localhost-results.png" alt="127.0.0.1 Results"></p>
 <p>It showed an error saying &ldquo;This site can&rsquo;t be reached&rdquo;.</p>
 <p>I sent the request to Burp Suite Intruder and started doing a port scan of the top 1000 ports but it was taking a lot of time. All of these tests were taking 2-3 minutes to complete. Even if we consider the best case of 2 minutes to complete a test, we still require 2000 minutes which is 33.33 hours to perform a port scan of just 1000 ports.</p>
-<p>This was obviously the wrong way. To find a workaround for this, I played around a bit with the application&rsquo;s settings and found an option that allowed us to disable these &ldquo;tests&rdquo; that took most of the time.</p>
+<p>This was the wrong way. To find a workaround, I played with the application&rsquo;s settings and found an option to disable these &ldquo;tests&rdquo; that I thought took most of the time.</p>
 <p>I disabled the tests and tried again. But the delay of 2-3 minutes was still there despite the tests being on or off. So I believe that it was some kind of internet issue or browser issue.</p>
 <p>However, while testing this, I made a huge mess. Before you could submit a new URL to test, all the old URL tests were supposed to be finished. If they are not finished then the new URL tests will stay pending. And previously, I had sent 1000 requests to the server for port scanning.</p>
-<p>This means that now I cannot test further without waiting for 33.33 hours. I really wished someone would reboot the server so that I do not have to wait that long but the server seemed to be unused as no one really sent any tests during the 33.33 hours. I also checked the old tests but there were no tests before I sent mine.</p>
+<p>This means I cannot test further without waiting for 33.33 hours. I wished someone would reboot the server so that I did not have to wait that long but the server seemed to be unused as no one sent any tests during these 33.33 hours. I also checked the old tests but there were no tests before I sent mine.</p>
 <p>After two days, I checked and all the tests were finished. I scraped the results, found all the screenshots, and downloaded them.</p>
 <p>Upon checking all the screenshots, I was disappointed once again as none of the ports were running HTTP services. Even after waiting for two days to see the results, nothing was found.</p>
 <p>I tried the <code>file://</code> protocol to retrieve <code>/etc/passwd</code> but that also did not work.</p>
@@ -214,9 +214,9 @@ if (!doNotTrack) {
 <ul>
 <li><code>/computeMetadata/v1/instance/tags</code></li>
 </ul>
-<p>I gave the same endpoint to the application for testing and to my surprise, it actually gave me the output!</p>
+<p>I gave the same endpoint to the application for testing and to my surprise, it gave me the output!</p>
 <p><img src="/metadata-v1-instance-tags-results.png" alt="/computeMetadata/v1/instance/tags Results"></p>
-<p>Here, the screenshot quality was really bad. It was too small that it was basically unreadable. To view metadata that actually makes some sense to us, we need to find some other way.</p>
+<p>Here, the screenshot quality was really bad. It was too small that it was unreadable. To view metadata that makes some sense to us, we need to find some other way.</p>
 <p>After poking around with different features, I found one way to view the resulting HTML content. All I had to do was to click on the &ldquo;View JSON result&rdquo; button. After clicking, the application showed the performance metrics and all the other information in JSON format.</p>
 <p><img src="/view-JSON-results.png" alt="View JSON results"></p>
 <p>Here, I was able to see the resulting HTML content in a JSON field called &ldquo;html&rdquo;.</p>
