@@ -6,7 +6,27 @@
     <description>Recent content in Tags on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 19 Oct 2022 17:59:25 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 03 Mar 2023 01:09:16 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ACPV</title>
+      <link>https://kuldeep.io/tags/acpv/</link>
+      <pubDate>Fri, 03 Mar 2023 01:09:16 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/tags/acpv/</guid>
+      <description></description>
+      <content></content>
+    </item>
+    
+    <item>
+      <title>SSRF</title>
+      <link>https://kuldeep.io/tags/ssrf/</link>
+      <pubDate>Fri, 03 Mar 2023 01:09:16 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/tags/ssrf/</guid>
+      <description></description>
+      <content></content>
+    </item>
+    
     <item>
       <title>LFI</title>
       <link>https://kuldeep.io/tags/lfi/</link>
@@ -48,16 +68,6 @@
     </item>
     
     <item>
-      <title>ACPV</title>
-      <link>https://kuldeep.io/tags/acpv/</link>
-      <pubDate>Sat, 15 Jan 2022 20:50:13 +0530</pubDate>
-      
-      <guid>https://kuldeep.io/tags/acpv/</guid>
-      <description></description>
-      <content></content>
-    </item>
-    
-    <item>
       <title>IDOR</title>
       <link>https://kuldeep.io/tags/idor/</link>
       <pubDate>Sat, 15 Jan 2022 20:50:13 +0530</pubDate>
@@ -73,16 +83,6 @@
       <pubDate>Sat, 15 Jan 2022 20:50:13 +0530</pubDate>
       
       <guid>https://kuldeep.io/tags/sqli/</guid>
-      <description></description>
-      <content></content>
-    </item>
-    
-    <item>
-      <title>SSRF</title>
-      <link>https://kuldeep.io/tags/ssrf/</link>
-      <pubDate>Sat, 15 Jan 2022 20:50:13 +0530</pubDate>
-      
-      <guid>https://kuldeep.io/tags/ssrf/</guid>
       <description></description>
       <content></content>
     </item>

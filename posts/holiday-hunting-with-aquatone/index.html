@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Holiday Hunting With Aquatone :: kuldeepdotexe&#39;s blog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="This blog is about my findings while on a workation to Goa with my hacker friends." />
+<meta name="keywords" content="SSRF, Server Side Request Forgery, GCP, Google Cloud Metadata, Metadata, Aquatone, ACPV, Access Control, Auth Bypass, Authentication Bypass, Port Scanning, Port Scan" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://kuldeep.io/posts/holiday-hunting-with-aquatone/" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+
+<link rel="stylesheet" href="https://kuldeep.io/assets/style.css">
+
+  <link rel="stylesheet" href="https://kuldeep.io/assets/green.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://kuldeep.io/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://kuldeep.io/img/favicon/green.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="kuldeepdotexe" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Holiday Hunting With Aquatone">
+<meta property="og:description" content="This blog is about my findings while on a workation to Goa with my hacker friends." />
+<meta property="og:url" content="https://kuldeep.io/posts/holiday-hunting-with-aquatone/" />
+<meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
+
+  <meta property="og:image" content="https://kuldeep.io/">
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+  <meta property="article:published_time" content="2023-03-03 01:09:16 &#43;0530 IST" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+</head>
+<body class="green">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Kuldeep&#39;s Blog
+  </div>
+</a>
+
+    </div>
+    
+  </div>
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://kuldeep.io/posts/holiday-hunting-with-aquatone/">Holiday Hunting With Aquatone</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2023-03-03
+        
+      </span>
+    
+    
+      <span class="post-author">:: Kuldeep Pandya</span>
+    
+    
+      <span class="post-reading-time">:: 9 min read (1824 words)</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://kuldeep.io/tags/ssrf/">SSRF</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/acpv/">ACPV</a>&nbsp;
+    
+  </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>Hello, folks!</p>
+<p>Before going to the blog, I would like to give a little context on what happened here. I went to a workation in April 2021 with my hacker friends (<a href="https://twitter.com/N0_M3ga_Hacks">@N0_M3ga_Hacks</a>, <a href="https://twitter.com/AyushBawariya1">@AyushBawariya1</a> and <a href="https://twitter.com/x30r_">@x30r_</a>). We hacked during the day and partied in the evenings.</p>
+<p>One day, I was telling <a href="https://twitter.com/N0_M3ga_Hacks">@N0_M3ga_Hacks</a> about how easy it was to hunt on a specific target in Synack Red Team. That it was full of vulnerabilities. I was telling him that I have found many vulnerabilities just by running <a href="https://github.com/michenriksen/aquatone">aquatone</a> on the in-scope HTTP servers. I did not even need to do a port scan to find other HTTP services on different ports like 8443,8080 etc.</p>
+<p>While telling him about this, I thought, &ldquo;let me show him in practice&rdquo; and I actually went ahead and ran <a href="https://github.com/projectdiscovery/httpx">httpx</a> on all the in-scope IPs and found live HTTP services. Then I ran aquatone on all the IPs.</p>
+<p>From here, we found a total of 3 vulnerabilities that are as documented below:</p>
+<table>
+<thead>
+<tr>
+<th>Vulnerability Title</th>
+<th>Reward</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SSRF Allowing To Access Google VM Metadata</td>
+<td>$2400</td>
+</tr>
+<tr>
+<td>SSRF Allowing To Access Internal Ports</td>
+<td>$500</td>
+</tr>
+<tr>
+<td>Exposed XXXX Portal Revealing Tickets</td>
+<td>$705</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ssrf-allowing-to-access-google-vm-metadata">SSRF Allowing To Access Google VM Metadata<a href="#ssrf-allowing-to-access-google-vm-metadata" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>What stood out from the aquatone results was a web page test application. The web root of the application looked like the following:</p>
+<p><img src="/WebPageTest-webroot.png" alt="WebPageTest"></p>
+<p>It asked us for a website URL to &ldquo;start test&rdquo;. I did not know what kind of test this is going to perform. For an example, I just gave it <a href="https://example.com">https://example.com</a> and saw what it did.</p>
+<p>The application did something for a while and then gave me a nice screenshot of <a href="https://example.com">https://example.com</a> with a lot of other performance metrics that I did not really know about nor care enough to check.</p>
+<p><img src="/example-com-results.png" alt="https://example.com results"></p>
+<p>What I got really interested in was the screenshot of the <a href="https://example.com">https://example.com</a>. The application sent a request to the <a href="https://example.com">https://example.com</a> and gave us its screenshot.</p>
+<p>This is the intended behaviour of the application and the ability to request arbitrary URLs is not a vulnerability in itself. The vulnerability arises when the application makes requests to restricted URLs like cloud metadata URLs or localhost that DO have sensitive information exposed.</p>
+<p>Happy with what I saw, I gave it https://127.0.0.1 to &ldquo;start test&rdquo;.</p>
+<p>It again did something for a while and gave me the results. This time, the results were quite disappointing.</p>
+<p><img src="/localhost-results.png" alt="127.0.0.1 Results"></p>
+<p>It showed an error saying &ldquo;This site can&rsquo;t be reached&rdquo;.</p>
+<p>I sent the request to Burp Suite Intruder and started doing port scan of top 1000 ports but it was taking a lot of time. All of these tests were taking 2-3 minutes to complete. Even if we consider the best case of 2 minutes to complete a test, we still require 2000 minutes that is 33.33 hours to perform port scan of just 1000 ports.</p>
+<p>This was obviously the wrong way. To find a workaround of this, I played around a bit with the application&rsquo;s settings and found an option that allowed us to disable these &ldquo;tests&rdquo; that took most of the time.</p>
+<p>I disabled the tests and tried again. But the delay of 2-3 minutes was still there despite the tests were on or off. So I believe that it was some kind of internet issue or browser isssue.</p>
+<p>However, while testing this, I made a huge mess. Before you could submit a new URL to test, all the old URL tests were supposed to be finished. If they are not finished then the new URL tests will stay in pending. And previously, I had sent 1000 requests to the server for port scanning.</p>
+<p>This means that now I cannot test further without waiting for 33.33 hours. I really wished someone would reboot the server so that I do not have to wait that long but the server seemed to be unused as no one really sent any tests during the 33.33 hours. I also checked the old tests but there were no tests before I sent mine.</p>
+<p>After two days, I checked and all the tests were finished. I scraped the results, found all the screenshots and downloaded them.</p>
+<p>Upon checking all the screenshots, I was disappointed once again as none of the ports were running HTTP services. Even after waiting for two days to see the results, nothing was found.</p>
+<p>I tried the <code>file://</code> protocol to retrieve <code>/etc/passwd</code> but that also did not work.</p>
+<p>I went ahead to try and retrieve the cloud metadata. This should have been the most obvious choice to me as the client hosted all their infrastructure on GCP. But while hacking this, I was more curious about internally exposed services than cloud metadata.</p>
+<p>To retrieve Google metadata, we need to request <a href="http://metadata.google.internal/computeMetadata/v1/">http://metadata.google.internal/computeMetadata/v1/</a> URL with two custom headers that are as follows:</p>
+<ul>
+<li>X-Google-Metadata-Request: True</li>
+<li>Metadata-Flavor: Google</li>
+</ul>
+<p>Luckily, the application also provided a functionality to add additional headers before you start the web page test.</p>
+<p>I added the headers and started the test on <a href="http://metadata.google.internal/computeMetadata/v1/">http://metadata.google.internal/computeMetadata/v1/</a> URL. It took more than 2-3 minutes to finish this time so I got excited. But I was once again met with disappointment as this resulted in an empty screenshot.</p>
+<p><img src="/metadata-v1-results.png" alt="/computeMetadata/v1 Results"></p>
+<p>I gave up with the cloud metadata thing and tried to check few common ports like 8080, 8125, 80, 5000, etc. This also resulted in the same output as my previous attempts for port scan. I decided to step away from this and take a little break.</p>
+<p>After 5 days, I again hooked onto retrieving the Google metadata. This time I tried with several other endpoints like:</p>
+<ul>
+<li><code>/computeMetadata/v1/instance/hostname</code></li>
+<li><code>/computeMetadata/v1/instance/id</code></li>
+<li><code>/computeMetadata/v1/instance/image</code></li>
+</ul>
+<p>The list goes on but you get the point. I tried many other endpoints. I also used the much useful <a href="https://gist.github.com/jhaddix/78cece26c91c6263653f31ba453e273b">Cloud Metadata Wordlist Gist</a>. However, none of these endpoints seemed to work in my case.</p>
+<p>I then simply googled &ldquo;google cloud metadata&rdquo; and the very first result was the <a href="https://cloud.google.com/compute/docs/metadata/querying-metadata">official documentation</a> on how to access the VM metadata. As I was reading it, it had mentioned the following endpoint:</p>
+<ul>
+<li><code>/computeMetadata/v1/instance/tags</code></li>
+</ul>
+<p>I gave the same endpoint to the application for testing and to my surprise, it actually gave me the output!</p>
+<p><img src="/metadata-v1-instance-tags-results.png" alt="/computeMetadata/v1/instance/tags Results"></p>
+<p>Here, the screenshot quality was really bad. It was too small that it was basically unreadable. To view metadata that actually makes some sense to us, we need to find some other way.</p>
+<p>After poking around with different features, I found one way to view the resulting HTML content. All I had to do was to click on the &ldquo;View JSON result&rdquo; button. After clicking, the application showed the performance metrics and all the other information in JSON format.</p>
+<p><img src="/view-JSON-results.png" alt="View JSON results"></p>
+<p>Here, I was able to see the resulting HTML content in a JSON field called &ldquo;html&rdquo;.</p>
+<p>I again checked the <a href="https://gist.github.com/jhaddix/78cece26c91c6263653f31ba453e273b">Cloud Metadata Wordlist Gist</a> and found out that I did not check one endpoint shown in the wordlist. It was the followind endpoint:</p>
+<ul>
+<li><code>/computeMetadata/v1/instance/disks/?recursive=true</code></li>
+</ul>
+<p>I quickly entered this endpoint and checked the HTML in JSON result and found out that it successfully listed all the disks!</p>
+<p><img src="/metadata-v1-instance-disks-results.png" alt="/computeMetadata/v1/instance/disks Results"></p>
+<p>Reported this with all the required evidences and this was accepted.</p>
+<p>The same application offered other functionalities like running custom testing script, bulk testing, bulk testing using file upload etc. And all of them were vulnerable to this.</p>
+<p>I will not be explaining each of them but an exploit using custom testing script looked like this:</p>
+<pre tabindex="0"><code>addHeader Metadata-Flavor: Google
+navigate http://metadata.google.internal/computeMetadata/v1/instance/disks/?recursive=true
+</code></pre><h3 id="ssrf-allowing-to-access-internal-ports">SSRF Allowing To Access Internal Ports<a href="#ssrf-allowing-to-access-internal-ports" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>The web application root of this IP showed a search functionality as shown below.</p>
+<p><img src="/search-functionality.png" alt="Web Application Root"></p>
+<p>Here, you can see that a URL is shown beside the &ldquo;cluster&rdquo; drop down. We can change the cluster dropdown to other options that will change the URL. My best guess is that we can change the cluster to switch between dev/prod environments.</p>
+<p>Upon searching a string &ldquo;test&rdquo;, a POST request to the <code>/search</code> endpoint is sent along with a lot of other parameters.</p>
+<p><img src="/search-request.png" alt="Search Request"></p>
+<p>A detailed breakdown of few crucial parameters is as shown below:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>url</td>
+<td>This was the URL to which the search request was sent. If you change the cluster using the drop down, this URL will change.</td>
+</tr>
+<tr>
+<td>sortby</td>
+<td>This was the column/criteria on which the the result would be sorted.</td>
+</tr>
+<tr>
+<td>sortorder</td>
+<td>Ascending or descending depending on the value.</td>
+</tr>
+<tr>
+<td>keyword</td>
+<td>The keyword to search in the cluster.</td>
+</tr>
+<tr>
+<td>page</td>
+<td>This was used for pagination purposes.</td>
+</tr>
+<tr>
+<td>storeid</td>
+<td>The store identifier in which we had to search</td>
+</tr>
+</tbody>
+</table>
+<p>From the parameters, I assumed that a sequence similar to the following might be used by the web application:</p>
+<p><img src="/SequenceDiagram.png" alt="Sequence Diagram"></p>
+<p>Here, the <code>url</code> parameter directly clicked as an SSRF in my head but I kept it in side and started hunting for SQL injections.</p>
+<p>I tested all the parameters and all the cluster URLs to see if any of them is vulnerable to an SQL injection or not. But all of them were secure and SQL injection was not possible in any of the clusters.</p>
+<p>Now, back to the SSRF, I changed the <code>url</code> parameter to my TUPoC URL and I saw that the server now responded with a <code>JSONDecodeError</code> and a detailed stack trace.</p>
+<p><img src="/JSONDecodeException.png" alt="JSONDecodeError"></p>
+<p>You may be wondering, &ldquo;why does this exception occur?&rdquo; This is because, the web application is trying to JSON decode the data returned from our TUPoC URL but our TUPoC URL is not sending valid JSON data. It is sending normal HTML.</p>
+<p>By taking advantage of this verbose error, we can enumerate open HTTP services on the vulnerable server.</p>
+<p>The thought process behind this is that, if a web service is running on the server, it will return some HTML data. The web application will try to JSON decode HTML data and hence an exception will be thrown. This way, we can enumerate open HTTP ports.</p>
+<p>I quickly sent the request to Burp Suite Intruder and changed the <code>url</code> parameter to <code>http://127.0.0.1:§1§</code> and ran intruder from 1 to 5000 to fuzz the top 5000 ports.</p>
+<p>Once the attack was complete, I found that port 5000 was open and running the vulnerable service.</p>
+<p><img src="/5000-port-open.png" alt="5000 Port Open"></p>
+<p>All the other ports returned a <code>ConnectionError</code> exception.</p>
+<h3 id="exposed-xxxx-portal-revealing-tickets">Exposed XXXX Portal Revealing Tickets<a href="#exposed-xxxx-portal-revealing-tickets" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>Once again, the web root of this host showed some kind of dashboard that I found interesting.</p>
+<p><img src="/portal-root.png" alt="Portal Web Root"></p>
+<p>It was showing different functionalities like incidents, tickets, changes etc. The API was restricting access to some of the functionalities. However, only some of the functionalities were protected and most of the functionalities were accessible without any sort of authentication.</p>
+<p>Here, I was able to view all the open tickets.</p>
+<p><img src="/portal-tickets.png" alt="Portal Tickets"></p>
+<h3 id="takeaways">Takeaways<a href="#takeaways" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<ul>
+<li>Collaborate with like-minded people.</li>
+<li>Do not give up if your way of exploit does not work. Take a break and try again.</li>
+<li>Hacking is not as easy that I made it seem in this blog post. Sometimes I hack for more than 12 hours without finding a vulnerability or even something to play with. And sometimes I get lucky and find multiple vulnerabilities with something as simple as aquatone.</li>
+<li>Take vacations/holidays.</li>
+</ul>
+<p>Thanks for reading. :)</p>
+<p>If you have any questions, you can reach me out on Twitter at <a href="https://twitter.com/kuldeepdotexe">@kuldeepdotexe</a>.</p>
+<p>Happy hacking!</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="https://kuldeep.io/posts/second-order-xxe-exploitation/">
+                <span class="button__text">Second Order XXE Exploitation</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2023 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="kuldeepdotexe" data-description="Support me on Buy me a coffee!" data-message="Thank you for reading. If you liked this, you can support this by buying me a coffee." data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+
+<script src="https://kuldeep.io/assets/main.js"></script>
+<script src="https://kuldeep.io/assets/prism.js"></script>
+
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
