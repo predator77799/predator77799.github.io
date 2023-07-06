@@ -154,10 +154,12 @@ While scrolling on LinkedIn/Twitter/Instagram it is easy to get overwhelmed by l
 &lt;p&gt;REDACTED&lt;/p&gt;
 &lt;h4 id=&#34;impact&#34;&gt;Impact&lt;/h4&gt;
 &lt;p&gt;A remote unauthenticated attacker can perform the following actions:&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Launch a Cross-Site Scripting (XSS) attack&lt;/strong&gt;: The attacker can manipulate the &lt;code&gt;eUrl&lt;/code&gt; parameter to point to a malicious script. This script will be fetched and executed within the user&amp;rsquo;s session when the page loads, giving the attacker the ability to modify the webpage content or perform actions on behalf of the user.
-&lt;strong&gt;Steal session cookies&lt;/strong&gt;: The &lt;code&gt;ASPSESSIONID&lt;/code&gt; cookie does not have the &lt;code&gt;HTTPOnly&lt;/code&gt; flag set, which means it can be accessed by client-side scripts. In the event of a successful XSS attack, this cookie can be stolen, compromising the user&amp;rsquo;s session.
-&lt;strong&gt;Perform account takeover&lt;/strong&gt;: With the stolen session cookie, the attacker can impersonate the victim&amp;rsquo;s session, leading to unauthorized access to the user&amp;rsquo;s account and potentially any sensitive data or functionalities it contains.
-&lt;strong&gt;Conduct harmful actions&lt;/strong&gt;: Once the account is taken over, the attacker can perform potentially harmful actions such as changing user settings, sending messages, or making transactions.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Launch a Cross-Site Scripting (XSS) attack&lt;/strong&gt;: The attacker can manipulate the &lt;code&gt;eUrl&lt;/code&gt; parameter to point to a malicious script. This script will be fetched and executed within the user&amp;rsquo;s session when the page loads, giving the attacker the ability to modify the webpage content or perform actions on behalf of the user.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Steal session cookies&lt;/strong&gt;: The &lt;code&gt;ASPSESSIONID&lt;/code&gt; cookie does not have the &lt;code&gt;HTTPOnly&lt;/code&gt; flag set, which means it can be accessed by client-side scripts. In the event of a successful XSS attack, this cookie can be stolen, compromising the user&amp;rsquo;s session.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Perform account takeover&lt;/strong&gt;: With the stolen session cookie, the attacker can impersonate the victim&amp;rsquo;s session, leading to unauthorized access to the user&amp;rsquo;s account and potentially any sensitive data or functionalities it contains.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Conduct harmful actions&lt;/strong&gt;: Once the account is taken over, the attacker can perform potentially harmful actions such as changing user settings, sending messages, or making transactions.&lt;/li&gt;
+&lt;/ol&gt;
 &lt;p&gt;All these malicious actions can be performed with just a single click from the user, increasing the risk and ease of the attack.&lt;/p&gt;
 &lt;h3 id=&#34;2-css-injection&#34;&gt;2. CSS Injection?&lt;/h3&gt;
 &lt;p&gt;While checking a static page of an in-scope application, I came across an interesting JavaScript file.&lt;/p&gt;
