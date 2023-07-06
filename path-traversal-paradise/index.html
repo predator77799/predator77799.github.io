@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Path Traversal Paradise :: kuldeepdotexe&#39;s blog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A writeup about the path traversals that I found in Synack Red Team" />
+<meta name="keywords" content="LFI, Local File Inclusion, Path Traversal" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://kuldeep.io/posts/path-traversal-paradise/" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+
+<link rel="stylesheet" href="https://kuldeep.io/assets/style.css">
+
+  <link rel="stylesheet" href="https://kuldeep.io/assets/green.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://kuldeep.io/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://kuldeep.io/img/favicon/green.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="kuldeepdotexe" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Path Traversal Paradise">
+<meta property="og:description" content="A writeup about the path traversals that I found in Synack Red Team" />
+<meta property="og:url" content="https://kuldeep.io/posts/path-traversal-paradise/" />
+<meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
+
+  <meta property="og:image" content="https://kuldeep.io/">
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+  <meta property="article:published_time" content="2022-01-23 22:37:16 &#43;0530 IST" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+</head>
+<body class="green">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Kuldeep&#39;s Blog
+  </div>
+</a>
+
+    </div>
+    
+  </div>
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://kuldeep.io/posts/path-traversal-paradise/">Path Traversal Paradise</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2022-01-23
+        
+      </span>
+    
+    
+      <span class="post-author">:: Kuldeep Pandya</span>
+    
+    
+      <span class="post-reading-time">:: 7 min read (1372 words)</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://kuldeep.io/tags/lfi/">LFI</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/pathtraversal/">PathTraversal</a>&nbsp;
+    
+  </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>Hi, guys!</p>
+<p>This blog will be about all the different kinds of Path Traversals and Local File Inclusion vulnerabilities that I have found in Synack Red Team.</p>
+<p>After hacking on Synack Red Team for approximately 9 months, I came to realise that Path Traversal and LFI like vulnerabilities are very common. I reported few authenticated vulnerabilities and few unauthenticated. However, I will try to cover both kinds of vulnerabilities.</p>
+<p>Before moving forward, I&rsquo;d like to list all my Path Traversal/LFI submissions.</p>
+<h3 id="submissions">Submissions<a href="#submissions" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<table>
+<thead>
+<tr>
+<th>Submission</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/posts/path-traversal-paradise/#path-traversal-vulnerability-leads-to-source-code-disclosure">Path Traversal Vulnerability Leads To Source Code Disclosure</a></td>
+<td>Accepted</td>
+</tr>
+<tr>
+<td><a href="/posts/path-traversal-paradise/#local-file-inclusion-in-vmware-vcenter-running-at-redacted">Local File Inclusion in VMWare VCenter running at [REDACTED]</a></td>
+<td>Accepted</td>
+</tr>
+<tr>
+<td><a href="/posts/path-traversal-paradise/#spring-boot-path-traversal---cve-2020-5410">Spring Boot Path Traversal - CVE-2020-5410</a></td>
+<td>Accepted</td>
+</tr>
+<tr>
+<td><a href="/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp">Local File Inclusion In download.php</a></td>
+<td>Accepted</td>
+</tr>
+<tr>
+<td><a href="/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp">Local File Inclusion In download.php</a></td>
+<td>Rejected (Duplicated my previous report)</td>
+</tr>
+<tr>
+<td><a href="/posts/path-traversal-paradise/#local-file-inclusion-in-downloadphp">Local File Inclusion In download.php</a></td>
+<td>Rejected (Duplicated in quality period)</td>
+</tr>
+<tr>
+<td><a href="/posts/path-traversal-paradise/#path-traversal-allows-to-download-licence-keys">Path Traversal Allows To Download Licence Keys</a></td>
+<td>Accepted</td>
+</tr>
+</tbody>
+</table>
+<h3 id="descriptions">Descriptions<a href="#descriptions" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<h4 id="path-traversal-vulnerability-leads-to-source-code-disclosure">Path Traversal Vulnerability Leads To Source Code Disclosure<a href="#path-traversal-vulnerability-leads-to-source-code-disclosure" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>This was the very first Path Traversal vulnerability that I had found in Synack Red Team. Also, even though I was pretty new to the platform and to the whole bug bounty thing in general, this report won the quality round so I am very proud of this particular report.</p>
+<p>After logging into the application, the application provided a bunch of sections like manage vendors, manage inventory, etc with a bunch of functionalities.</p>
+<p>Upon further inspecting these sections, I came across an interesting functionality that involved importing the data. The file was named <code>DataImport.view</code>.</p>
+<p><img src="/DataImport.png" alt="DataImport.view"></p>
+<p>I tried getting RCE by uploading a web shell and it actually worked! However, that&rsquo;s a different story. We want to discuss Path Traversals here and not RCEs.</p>
+<p>So, after successfully uploading a file, we were given the functionality to read the file.</p>
+<p><img src="/ReadFile.png" alt="ReadFile"></p>
+<p>After clicking the &ldquo;<strong>ReadFile</strong>&rdquo; button, it filled the file name field to the current uploaded filename by default. However, we had the ability to change the file name.</p>
+<p>Now, I just had to provide a valid file name. For this, I used the <code>Auth.aspx</code> to which the login request was sent. I could be sure that this exists because a login request was sent to this file and it resided in the webroot.</p>
+<p>So, I tried to do path traversal using payloads like <code>../Auth.aspx</code> and <code>../../Auth.aspx</code> etc.</p>
+<p>And, after three <code>../</code> sequences, the file was actually returned!</p>
+<p><img src="/Auth.png" alt="Auth.aspx"></p>
+<p>The response looked like this:</p>
+<p><img src="/AuthResponse.png" alt="AuthResponse"></p>
+<p>The file was broken because some sort of XML parsing was done on it. I still went ahead and reported it because it was still a path traversal issue and disclosed source code contents.</p>
+<p>I could do more creative things here like pulling more sensitive files but I stopped here because very limited time was left in the quality round. I initially did not care much for this vulnerability as I had already reported an RCE there but then quickly made a report in under 15 minutes putting together all my PoCs and I still won the quality round.</p>
+<h4 id="local-file-inclusion-in-vmware-vcenter-running-at-redacted">Local File Inclusion in VMWare VCenter running at [REDACTED]<a href="#local-file-inclusion-in-vmware-vcenter-running-at-redacted" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>This was the classic VMWare VCenter <code>/eam/vib</code> LFI vulnerability.</p>
+<p>The <code>/eam/vib</code> endpoint in VMWare VCenter instances takes a parameter named <code>id</code> in the GET request. The value to this <code>id</code> parameter is a file name that will be retrieved by the VCenter instance and will be given back in the response.</p>
+<p>There are already many resources regarding this particular vulnerability and I do not think much is to be said about it in this particular article.</p>
+<p>I used the following payload to retrieve the <code>hosts</code> file off the remote server:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/eam/vib?id=C:/WINDOWS/System32/drivers/etc/hosts
+</span></span></code></pre></div><p>There were some IP to host mappings in the <code>hosts</code> file which I thought was enough for impact but with creativity, more could have been achieved.</p>
+<p>I reported the issue during the quality round and this also won the QR.</p>
+<h4 id="spring-boot-path-traversal---cve-2020-5410">Spring Boot Path Traversal - CVE-2020-5410<a href="#spring-boot-path-traversal---cve-2020-5410" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>This was a known vulnerability in Spring Boot Cloud Config server. For PoC, I referred to this article here: <a href="http://www.jrasp.com/case/CVE-2020-5410.html">http://www.jrasp.com/case/CVE-2020-5410.html</a></p>
+<p>That article talks in detail about the vulnerability and also explains the source code.</p>
+<p>I did not read that much and simply took the PoC from there and used it on the target that I had for testing. And the exploit worked!</p>
+<p>I used the same payload as in the PoC which is:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%252Fpasswd%23foo/development
+</span></span></code></pre></div><p>The above payload retrieves the <code>/etc/passwd</code> file.</p>
+<p>However, this was Java and one odd thing about Java Path Traversals/LFIs is that if you specify a directory instead of a file for opening, it will actually list the content of that directory.</p>
+<p>So, for example, if I did not know what files were in the <code>/etc</code> directory, I would simply use the following payload to list all the files:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%23foo/development
+</span></span></code></pre></div><p>This is just the previous payload with the trailing <code>/passwd</code> removed. Now, we are just listing the contents of the <code>/etc</code> directory.</p>
+<p>I used this feature to list the contents of the root directory in the affected Linux server. In the root directory, I found a file named <code>application.jar</code> which was potentially the source code of the currently running Spring Boot Cloud Config server.</p>
+<p>Also, the root directory had a file <code>.dockerenv</code> so I was quite sure that I was in a docker container.</p>
+<p>However, Synack Red Team has the stop-and-report policy according to which, we are not supposed to do post-exploitation.</p>
+<p>I reported the issue during the 8 hours long quality period. And nobody had checked for this particular vulnerability and mine was the only report in QR.</p>
+<h4 id="local-file-inclusion-in-downloadphp">Local File Inclusion In download.php<a href="#local-file-inclusion-in-downloadphp" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>I have already discussed this vulnerability in my previous article and you can find it here: <a href="/posts/120-days-of-high-frequency-hunting/#local-file-inclusion-in-downloadphp">Local File Inclusion In download.php</a></p>
+<h4 id="path-traversal-allows-to-download-licence-keys">Path Traversal Allows To Download Licence Keys<a href="#path-traversal-allows-to-download-licence-keys" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<p>This path traversal was also very interesting. This was in a custom-built application and it did not require any authentication.</p>
+<p>When we visited the webroot, the web application redirected us to the login page.</p>
+<p>The login page was custom built and there was a brand logo along with the login page so I cannot show you the screenshots.</p>
+<p>Upon visiting the login page, a request to the <code>/web/product_logo</code> endpoint was sent. The request contained a GET parameter named <code>logo</code>.</p>
+<p>Overall, the request URL looked like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/web/product_logo?logo=logo.png
+</span></span></code></pre></div><p>The parameter <code>logo</code> took a file name as the input and returned that particular file in the response. In this case, it was <code>logo.png</code>.</p>
+<p>Now, as this is functionality to read files, there may be a potential LFI/Path Traversal here. So, I changed the file name to <code>index</code> with different extensions. However, none of them worked.</p>
+<p>So, I ran <code>ffuf</code> hoping to discover more files but it was a failure. I used the <code>raft-small-files-lowercase.txt</code> provided in the <a href="https://github.com/danielmiessler/SecLists">SecLists</a>.</p>
+<p>I did not know the underlying technology which is used so it was quite painful to enumerate files.</p>
+<p>However, I knew it was a Windows box because of the case-insensitive directory structure. What it basically means is that, in Windows, <code>WinDows</code> and <code>Windows</code> are the same directories/files as it is not case sensitive. And when I was doing my recon, I received the same response when I did <code>/web</code> or <code>/Web</code> so I was quite sure it was a Windows box.</p>
+<p>There are other ways to determine this too but I decided to assume it was Windows.</p>
+<p>Same as my past submissions, I decided to read the <code>C:/WINDOWS/System32/drivers/etc/hosts</code> file of the remote server.</p>
+<p>So, I used a path traversal payload and the final URL looked like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/web/product_logo?logo=../WINDOWS/System32/drivers/etc/hosts
+</span></span></code></pre></div><p>However, one <code>../</code> sequence did not work. So I kept increasing the <code>../</code> sequences.</p>
+<p>Finally after 10 <code>../</code> sequences, I finally hit the <code>hosts</code> file and the server retrieved it for us.</p>
+<p>The final payload looked like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>https://[REDACTED]/web/product_logo?logo=../../../../../../../../../../WINDOWS/System32/drivers/etc/hosts
+</span></span></code></pre></div><p>Although this was enough for PoC, I decided to dig deeper with this path traversal.</p>
+<p>When I was fuzzing the application, I encountered an error that disclosed the full path to the webroot.</p>
+<p>I ran <code>ffuf</code> again but now in the webroot of the server using the path traversal that I had found. This way, I was able to enumerate a file named <code>LICENSE</code> that had license keys of the application.</p>
+<p>I reported the issue with all my findings and the report won the QR.</p>
+<p>Thanks for the read. :)</p>
+<p>You can reach out to me at <a href="https://twitter.com/kuldeepdotexe">@kuldeepdotexe</a>.</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        <span class="button previous">
+            <a href="https://kuldeep.io/posts/nosql-injection-in-plain-sight/">
+                <span class="button__icon">←</span>
+                <span class="button__text">NoSQL Injection in Plain Sight</span>
+            </a>
+        </span>
+        
+        
+        <span class="button next">
+            <a href="https://kuldeep.io/posts/120-days-of-high-frequency-hunting/">
+                <span class="button__text">120 Days of High Frequency Hunting</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2023 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="kuldeepdotexe" data-description="Support me on Buy me a coffee!" data-message="Thank you for reading. If you liked this, you can support this by buying me a coffee." data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+
+<script src="https://kuldeep.io/assets/main.js"></script>
+<script src="https://kuldeep.io/assets/prism.js"></script>
+
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
