@@ -2,22 +2,31 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://kuldeep.io/tags/cssi/</loc>
+    <lastmod>2023-07-06T14:33:00+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/posts/fulldisclosure-dom-based-xss/</loc>
+    <lastmod>2023-07-06T14:33:00+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/</loc>
+    <lastmod>2023-07-06T14:33:00+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/posts/</loc>
+    <lastmod>2023-07-06T14:33:00+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/</loc>
+    <lastmod>2023-07-06T14:33:00+05:30</lastmod>
+  </url><url>
+    <loc>https://kuldeep.io/tags/xss/</loc>
+    <lastmod>2023-07-06T14:33:00+05:30</lastmod>
+  </url><url>
     <loc>https://kuldeep.io/tags/acpv/</loc>
     <lastmod>2023-03-03T01:09:16+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/posts/holiday-hunting-with-aquatone/</loc>
     <lastmod>2023-03-03T01:09:16+05:30</lastmod>
   </url><url>
-    <loc>https://kuldeep.io/</loc>
-    <lastmod>2023-03-03T01:09:16+05:30</lastmod>
-  </url><url>
-    <loc>https://kuldeep.io/posts/</loc>
-    <lastmod>2023-03-03T01:09:16+05:30</lastmod>
-  </url><url>
     <loc>https://kuldeep.io/tags/ssrf/</loc>
-    <lastmod>2023-03-03T01:09:16+05:30</lastmod>
-  </url><url>
-    <loc>https://kuldeep.io/tags/</loc>
     <lastmod>2023-03-03T01:09:16+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/tags/lfi/</loc>
@@ -48,9 +57,6 @@
     <lastmod>2022-01-15T20:50:13+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/tags/sqli/</loc>
-    <lastmod>2022-01-15T20:50:13+05:30</lastmod>
-  </url><url>
-    <loc>https://kuldeep.io/tags/xss/</loc>
     <lastmod>2022-01-15T20:50:13+05:30</lastmod>
   </url><url>
     <loc>https://kuldeep.io/posts/prove-yourself-as-1337-null-ahmedabad/</loc>

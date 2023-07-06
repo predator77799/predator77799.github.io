@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on kuldeepdotexe&#39;s blog</title>
-    <link>https://kuldeep.io/posts/</link>
-    <description>Recent content in Posts on kuldeepdotexe&#39;s blog</description>
+    <title>kuldeepdotexe&#39;s blog</title>
+    <link>https://kuldeep.io/</link>
+    <description>Recent content on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 06 Jul 2023 14:33:00 +0530</lastBuildDate><atom:link href="https://kuldeep.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 06 Jul 2023 14:33:00 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Full Disclosure - DOM-based XSS And Failures In Bug Bounty Hunting</title>
       <link>https://kuldeep.io/posts/fulldisclosure-dom-based-xss/</link>
