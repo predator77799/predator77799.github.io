@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Escalating Privileges With SSRF :: kuldeepdotexe&#39;s blog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="This post is regarding my findings on Synack Red Team. The findings included a total of 4 SSRFs. One of them being a fully unauthenticated SSRF leading to high privileged account takeover." />
+<meta name="keywords" content="SSRF, Server Side Request Forgery, ACPV, Access Control, Broken Authentication, Authentication Bypass" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://kuldeep.io/posts/escalating-privileges-with-ssrf/" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+
+<link rel="stylesheet" href="https://kuldeep.io/assets/style.css">
+
+  <link rel="stylesheet" href="https://kuldeep.io/assets/green.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://kuldeep.io/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://kuldeep.io/img/favicon/green.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="kuldeepdotexe" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Escalating Privileges With SSRF">
+<meta property="og:description" content="This post is regarding my findings on Synack Red Team. The findings included a total of 4 SSRFs. One of them being a fully unauthenticated SSRF leading to high privileged account takeover." />
+<meta property="og:url" content="https://kuldeep.io/posts/escalating-privileges-with-ssrf/" />
+<meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
+
+  <meta property="og:image" content="https://kuldeep.io/">
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+  <meta property="article:published_time" content="2023-07-20 20:58:53 &#43;0530 IST" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+</head>
+<body class="green">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Kuldeep&#39;s Blog
+  </div>
+</a>
+
+    </div>
+    
+  </div>
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://kuldeep.io/posts/escalating-privileges-with-ssrf/">Escalating Privileges With SSRF</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2023-07-20
+        
+      </span>
+    
+    
+      <span class="post-author">:: Kuldeep Pandya</span>
+    
+    
+      <span class="post-reading-time">:: 8 min read (1695 words)</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://kuldeep.io/tags/ssrf/">SSRF</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/acpv/">ACPV</a>&nbsp;
+    
+    #<a href="https://kuldeep.io/tags/authbypass/">AuthBypass</a>&nbsp;
+    
+  </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>Hello again, folks!</p>
+<p>This post is regarding my recent findings on Synack Red Team which consisted of a total of 4 SSRF vulnerabilities. Three of them were authenticated SSRFs and the last was a fully unauthenticated SSRF.</p>
+<p>If you follow me on Twitter, you must have seen my post regarding this.</p>
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Sent a really scary unauth SSRF in a <a href="https://twitter.com/SynackRedTeam?ref_src=twsrc%5Etfw">@SynackRedTeam</a> target.<br><br>It allowed me to steal authorization tokens for ANY backend API.<br><br>More details in the upcoming blog. <a href="https://t.co/e1tnhIkPu0">pic.twitter.com/e1tnhIkPu0</a></p>&mdash; Kuldeep Pandya (@kuldeepdotexe) <a href="https://twitter.com/kuldeepdotexe/status/1681750978335485952?ref_src=twsrc%5Etfw">July 19, 2023</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script> 
+<p>The finding is pretty straightforward. I can explain it in fewer lines but I want to explain my stepwise thought process to finding this specific vulnerability. I want to do this because the target was live for a total of 11 hours and 47 minutes before I reported the vulnerability, and surprisingly no one else reported it despite the relatively small attack surface.</p>
+<p>To the blog now,</p>
+<p>I was onboarded to the target at 01:31 AM at night. I was obviously sleeping. After waking up, I realized there was a new API target. So I hopped onto my machine.</p>
+<p>I prepared the testing environment by loading the Postman collection and Postman environment files into Postman. I then started Burp Suite in order to view and manipulate the requests.</p>
+<p><img src="/Postman-collection.png" alt="Postman Collection"></p>
+<h3 id="application-overview">Application Overview<a href="#application-overview" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>There were different services running on each sub-collection. By manually checking each request, I found out that there were a total of 5 services that were actually performing some sort of operation. The other collections are for authentication and other purposes.</p>
+<p>The 5 services that were running included:</p>
+<ul>
+<li>XXXIntegration</li>
+<li>AssetManagement</li>
+<li>Billing</li>
+<li>CustomerManagement</li>
+<li>OLS</li>
+</ul>
+<p>To access any of these services, you require a service-specific access token. For example, if you want to access the <code>Billing</code> service, you must have a <code>Billing</code> access token. If you have an <code>AssetManagement</code> access token, it will not work for the <code>Billing</code> service and vice versa.</p>
+<p>I obtained an access token for the <code>AssetManagement</code> service. I set the access token in the Postman environment in order to for the testing process to work properly. And I started exploring various requests.</p>
+<h3 id="initial-discovery">Initial Discovery<a href="#initial-discovery" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>By manually testing each request on a one-by-one basis, I came across the <code>XXXService - /xxxevent</code> request.</p>
+<p>The request looked like this:</p>
+<pre tabindex="0"><code>POST /api/xxx/xxxevent HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer redacted
+Host: AssetManagement-service-host
+Content-Length: 507
+{
+  &#34;event_id&#34;: &#34;redacted&#34;,
+  &#34;event_type&#34;: &#34;redacted&#34;,
+  &#34;event_time&#34;: &#34;2022-07-06T14:55:00.00Z&#34;,
+  &#34;correlation_id&#34; : &#34;redacted&#34;,
+  &#34;payload&#34;: {
+    &#34;urls&#34;: [
+      {
+        &#34;url_type&#34;: &#34;XXXIntegration&#34;,
+        &#34;url&#34;: &#34;https://XXXIntegration-service-host/api/xxxhistory/xxx/1234&#34;
+      }     
+    ]
+  }
+}
+</code></pre><p>Here is the explanation for each parameter:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event_id</code></td>
+<td>This is a UUID for a particular event.</td>
+</tr>
+<tr>
+<td><code>event_type</code></td>
+<td>Set to &ldquo;<em>public</em>&rdquo; by default in the collection. Most probably, this identifies if the event is public or private.</td>
+</tr>
+<tr>
+<td><code>event_time</code></td>
+<td>Describes the time of the event.</td>
+</tr>
+<tr>
+<td><code>url_type</code></td>
+<td>This is set to <code>XXXIntegration</code> showing that the <code>XXXIntegration</code> service is being requested.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td>This is the parameter of utmost interest, as this specifies an <code>XXXIntegration</code> service URL to fetch data. A user can modify this parameter to hold any arbitrary URL and the API will send requests to that URL</td>
+</tr>
+</tbody>
+</table>
+<p>The response to this request showed no interesting behavior as it was just a <code>500 Internal Server Error</code> page without any verbose errors.</p>
+<p>I started testing this request by providing it with a Synack Burp Collaborator URL. And, to my surprise, it actually sent me an HTTP request.</p>
+<p><img src="/request-to-collaborator.png" alt="Request In Collaborator"></p>
+<h3 id="initial-assumption-and-its-limitations">Initial Assumption and Its Limitations<a href="#initial-assumption-and-its-limitations" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>Just like you, I also noticed the authorization token in the request. But at the time of testing, I assumed this was my own authorization token. I believed the server forwarded parts of my request to the URL provided as the <code>url</code> parameter.</p>
+<p>This kind of behavior has almost no impact on its own because stealing our own bearer token yields nothing. It must be chained with some other attack like CSRF in order to exploit other users. For example, it can be exploited when you make the victim send a request to an attacker-controlled domain.</p>
+<h3 id="bypassing-the-blacklist-to-achieve-a-partial-ssrf">Bypassing The Blacklist To Achieve A Partial SSRF<a href="#bypassing-the-blacklist-to-achieve-a-partial-ssrf" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>I ignored this behavior and started checking if I can do a local port scan for it to be eligible for a partial SSRF. I tried to make the API send a request to <code>localhost</code> but the API had a blacklist in place for such payloads. I tried a handful of payloads like:</p>
+<ul>
+<li><code>localhost</code></li>
+<li><code>127.0.0.1</code></li>
+<li><code>0.0.0.0</code></li>
+<li><code>127.1</code></li>
+</ul>
+<p>But as expected, all were being filtered by the API.</p>
+<p>This API was allowing requests to arbitrary domains so I thought to try a domain name that resolved to <code>127.0.0.1</code>. So, I tried it again with the <code>localtest.me</code> domain and it successfully bypassed the blacklist. I confirmed that it bypassed the blacklist by the <code>500 Internal Server Error</code> response. Normally, if the API filtered the payload, it sent a <code>403 Forbidden</code> response.</p>
+<p>API normally:</p>
+<p><img src="/api-filtering-localhost.png" alt="API Throwing A 403 When Supplied with 0.0.0.0"></p>
+<p>API when I use localtest.me:</p>
+<p><img src="/api-filtering-localhost-bypassed.png" alt="API Blacklisting Bypass Using localtest.me"></p>
+<p>Now, all I had to do was create a local port scan PoC and submit it as a partial SSRF. However, I decided to escalate this issue in order for a better payout. I kept this vulnerability aside and started checking other functionalities that could potentially be used to exploit the SSRF.</p>
+<h3 id="attempting-to-understand-jwt">Attempting To Understand JWT<a href="#attempting-to-understand-jwt" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>At random, a thought clicked in my brain. I wanted to confirm if the bearer token that I received in the collaborator indeed belonged to me. I later confirmed that the bearer token in the collaborator was different from the one that I had in my request.</p>
+<p>I used <a href="https://jwt.io/">jwt.io</a> to decode both the tokens and compared them side by side. And this comparison further confirmed my belief that both the tokens are different. I will not show a screenshot of this for obvious reasons.</p>
+<p>Even after confirming that the token is from a different user/service, I still had no idea where this token was being used. I thought to fuzz all API endpoints of all services with this bearer token to see if any of them respond with a <code>200 OK</code> or even anything apart from <code>401 Unauthorized</code>.</p>
+<h3 id="finding-services-to-use-the-jwt">Finding Services To Use The JWT<a href="#finding-services-to-use-the-jwt" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>As usual, I got lazy and started looking for alternatives to fuzzing. Also, fuzzing must be the last resort in this situation because there were endpoints that performed different CRUD operations. Any wrong request can break the API.</p>
+<p>After checking each request manually for a while, a thought randomly clicked in my brain, once again. Let&rsquo;s revisit our vulnerable request:</p>
+<pre tabindex="0"><code>{
+	&#34;url_type&#34;: &#34;XXXIntegration&#34;,
+	&#34;url&#34;: &#34;https://XXXIntegration-service-host/api/xxxhistory/xxx/1234&#34;
+}
+</code></pre><p>Here, <code>XXXIntegration</code> specifies that we are requesting the <code>XXXIntegration</code> service. If you notice, the <code>XXXIntegration</code> service is there in the 5 services that I listed at the start of the blog. And the <code>XXXIntegration-service-host</code> is a host for the same service.</p>
+<p>So, my hypothesis was that if the original request was being sent to the <code>XXXIntegration-service-host</code> host, then this access token must also belong to the same service.</p>
+<p>To confirm this theory, I copied the authorization token received in the collaborator and pasted it into the health check endpoint of the <code>XXXIntegration-service-host</code> host. The health check endpoint was the perfect to test for this. The reason behind this is that it returned a <code>401 Unauthorized</code> response if the credentials are invalid and a <code>200 OK</code> response if the credentials are valid.</p>
+<p>After setting the authorization token, I successfully received a <code>200 OK</code>. This confirmed that the token that was leaked in collaborator belonged to the <code>XXXIntegration</code> service.</p>
+<p>Before setting the authorization token:</p>
+<p><img src="/healthcheck-before-setting-token.png" alt="API showing a 401 before setting the authorization token"></p>
+<p>After setting the authorization token leaked in the collaborator:</p>
+<p><img src="/healthcheck-after-setting-token.png" alt="API showing a 200 OK after setting the authorization token"></p>
+<p>This proved that the authorization token can be used to interact with the <code>XXXIntegration</code> service. However, just to make sure that it can not be accessed with any valid access token, I sent a request to the health check endpoint of the <code>XXXIntegration</code> service with an access token for the <code>AssetManagement</code> service. This failed because the application had proper access control checks in place.</p>
+<p>Also, I later confirmed that we can exfiltrate an access token of ANY service by specifying the service name in the <code>url_type</code> parameter. If you replace <code>XXXIntegration</code> with <code>Billing</code> in the vulnerable request, the collaborator request will yield a Billing service access token.</p>
+<p>Now we have everything we need to craft a full SSRF report.</p>
+<ol>
+<li>A request to an arbitrary URL</li>
+<li>API leaking access token of another service</li>
+<li>Privilege escalation using the access token</li>
+</ol>
+<h3 id="finding-even-more-scarier-ssrfs">Finding Even More (Scarier) SSRFs<a href="#finding-even-more-scarier-ssrfs" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>I started writing a report on this issue. But I accidentally closed all my tabs in Postman. I used the &ldquo;filter&rdquo; option in Postman to search for the &ldquo;event&rdquo; keyword hoping to find the vulnerable endpoint. But instead, I was greeted with 9 such endpoints that ended with &ldquo;event&rdquo;. I checked all of them and found out that all of them were vulnerable.</p>
+<p>Now, instead of writing one report, I had to write 4 different reports. I wrote the first three reports. And then moved on to the next and final report. This is where I was so shocked that I could not believe what I was seeing.</p>
+<p>The last endpoint was accessible without any sort of authentication. The request to it looked like this:</p>
+<pre tabindex="0"><code>POST /api/xxx/xxxevent HTTP/1.1
+Content-Type: application/json
+Host: CustomerManagement-service-host
+Content-Length: 622
+
+{
+	&#34;event_id&#34;: &#34;redacted&#34;,
+	&#34;event_type&#34;: &#34;redacted&#34;,
+	&#34;event_time&#34;: &#34;2022-08-30T09:00:00.0000000Z&#34;,
+	&#34;correlation_id&#34;: &#34;redacted&#34;,
+	&#34;payload&#34;: {
+		&#34;urls&#34;: [
+      {
+        &#34;url_type&#34;: &#34;CustomerManagement&#34;,
+        &#34;url&#34;: &#34;https://CustomerManagement-service-host/api/xxx/customer/1234&#34;
+      },
+			{
+				&#34;url_type&#34;: &#34;XXXIntegration&#34;,
+				&#34;url&#34;: &#34;https://XXXIntegration-service-host/api/xxxhistory/xxx/1234&#34;
+			}
+		]
+	}
+}
+</code></pre><p>Any form of authentication was not required to access this endpoint. So, it allowed a remote unauthenticated attacker to obtain valid authorization tokens for different services. All an attacker has to do is tell the server about the service he/she wants to interact with and a URL to send the authenticated access token. The server will send the credentials without asking for anything. It&rsquo;s that simple. And it&rsquo;s that scary.</p>
+<p>Sent all four reports to Synack and they accepted them happily with a generous bounty amount.</p>
+<h3 id="conclusiontakeaways">Conclusion/Takeaways<a href="#conclusiontakeaways" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<ol>
+<li>Manually check for small details/anomalies. This may or may not lead to vulnerabilities. But it can certainly help you escalate the severity of the issue.</li>
+<li>Always try to increase the severity of your finding. Never settle for a lower severity vulnerability. Take the help of your fellow hackers if you need to.</li>
+</ol>
+<p>I work full-time as a bug bounty hunter mostly hacking in Synack Red Team (SRT). If you&rsquo;re interested in becoming a part of the Synack Red Team, feel free to connect with me on Twitter, Instagram, or LinkedIn. I&rsquo;m always happy to offer guidance to fellow cybersecurity enthusiasts.</p>
+<p>EOF</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="https://kuldeep.io/posts/fulldisclosure-dom-based-xss/">
+                <span class="button__text">Full Disclosure - DOM-based XSS And Failures In Bug Bounty Hunting</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2023 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="kuldeepdotexe" data-description="Support me on Buy me a coffee!" data-message="Thank you for reading. If you liked this, you can support this by buying me a coffee." data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+
+<script src="https://kuldeep.io/assets/main.js"></script>
+<script src="https://kuldeep.io/assets/prism.js"></script>
+
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

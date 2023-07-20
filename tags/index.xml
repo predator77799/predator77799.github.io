@@ -6,7 +6,37 @@
     <description>Recent content in Tags on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 06 Jul 2023 14:33:00 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 20 Jul 2023 20:58:53 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ACPV</title>
+      <link>https://kuldeep.io/tags/acpv/</link>
+      <pubDate>Thu, 20 Jul 2023 20:58:53 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/tags/acpv/</guid>
+      <description></description>
+      <content></content>
+    </item>
+    
+    <item>
+      <title>AuthBypass</title>
+      <link>https://kuldeep.io/tags/authbypass/</link>
+      <pubDate>Thu, 20 Jul 2023 20:58:53 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/tags/authbypass/</guid>
+      <description></description>
+      <content></content>
+    </item>
+    
+    <item>
+      <title>SSRF</title>
+      <link>https://kuldeep.io/tags/ssrf/</link>
+      <pubDate>Thu, 20 Jul 2023 20:58:53 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/tags/ssrf/</guid>
+      <description></description>
+      <content></content>
+    </item>
+    
     <item>
       <title>CSSi</title>
       <link>https://kuldeep.io/tags/cssi/</link>
@@ -23,26 +53,6 @@
       <pubDate>Thu, 06 Jul 2023 14:33:00 +0530</pubDate>
       
       <guid>https://kuldeep.io/tags/xss/</guid>
-      <description></description>
-      <content></content>
-    </item>
-    
-    <item>
-      <title>ACPV</title>
-      <link>https://kuldeep.io/tags/acpv/</link>
-      <pubDate>Fri, 03 Mar 2023 01:09:16 +0530</pubDate>
-      
-      <guid>https://kuldeep.io/tags/acpv/</guid>
-      <description></description>
-      <content></content>
-    </item>
-    
-    <item>
-      <title>SSRF</title>
-      <link>https://kuldeep.io/tags/ssrf/</link>
-      <pubDate>Fri, 03 Mar 2023 01:09:16 +0530</pubDate>
-      
-      <guid>https://kuldeep.io/tags/ssrf/</guid>
       <description></description>
       <content></content>
     </item>

@@ -6,7 +6,177 @@
     <description>Recent content on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 06 Jul 2023 14:33:00 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 20 Jul 2023 20:58:53 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Escalating Privileges With SSRF</title>
+      <link>https://kuldeep.io/posts/escalating-privileges-with-ssrf/</link>
+      <pubDate>Thu, 20 Jul 2023 20:58:53 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/escalating-privileges-with-ssrf/</guid>
+      <description>Hello again, folks!
+This post is regarding my recent findings on Synack Red Team which consisted of a total of 4 SSRF vulnerabilities. Three of them were authenticated SSRFs and the last was a fully unauthenticated SSRF.
+If you follow me on Twitter, you must have seen my post regarding this.
+The finding is pretty straightforward. I can explain it in fewer lines but I want to explain my stepwise thought process to finding this specific vulnerability.</description>
+      <content>&lt;p&gt;Hello again, folks!&lt;/p&gt;
+&lt;p&gt;This post is regarding my recent findings on Synack Red Team which consisted of a total of 4 SSRF vulnerabilities. Three of them were authenticated SSRFs and the last was a fully unauthenticated SSRF.&lt;/p&gt;
+&lt;p&gt;If you follow me on Twitter, you must have seen my post regarding this.&lt;/p&gt;
+&lt;p&gt;The finding is pretty straightforward. I can explain it in fewer lines but I want to explain my stepwise thought process to finding this specific vulnerability. I want to do this because the target was live for a total of 11 hours and 47 minutes before I reported the vulnerability, and surprisingly no one else reported it despite the relatively small attack surface.&lt;/p&gt;
+&lt;p&gt;To the blog now,&lt;/p&gt;
+&lt;p&gt;I was onboarded to the target at 01:31 AM at night. I was obviously sleeping. After waking up, I realized there was a new API target. So I hopped onto my machine.&lt;/p&gt;
+&lt;p&gt;I prepared the testing environment by loading the Postman collection and Postman environment files into Postman. I then started Burp Suite in order to view and manipulate the requests.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/Postman-collection.png&#34; alt=&#34;Postman Collection&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;application-overview&#34;&gt;Application Overview&lt;/h3&gt;
+&lt;p&gt;There were different services running on each sub-collection. By manually checking each request, I found out that there were a total of 5 services that were actually performing some sort of operation. The other collections are for authentication and other purposes.&lt;/p&gt;
+&lt;p&gt;The 5 services that were running included:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;XXXIntegration&lt;/li&gt;
+&lt;li&gt;AssetManagement&lt;/li&gt;
+&lt;li&gt;Billing&lt;/li&gt;
+&lt;li&gt;CustomerManagement&lt;/li&gt;
+&lt;li&gt;OLS&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;To access any of these services, you require a service-specific access token. For example, if you want to access the &lt;code&gt;Billing&lt;/code&gt; service, you must have a &lt;code&gt;Billing&lt;/code&gt; access token. If you have an &lt;code&gt;AssetManagement&lt;/code&gt; access token, it will not work for the &lt;code&gt;Billing&lt;/code&gt; service and vice versa.&lt;/p&gt;
+&lt;p&gt;I obtained an access token for the &lt;code&gt;AssetManagement&lt;/code&gt; service. I set the access token in the Postman environment in order to for the testing process to work properly. And I started exploring various requests.&lt;/p&gt;
+&lt;h3 id=&#34;initial-discovery&#34;&gt;Initial Discovery&lt;/h3&gt;
+&lt;p&gt;By manually testing each request on a one-by-one basis, I came across the &lt;code&gt;XXXService - /xxxevent&lt;/code&gt; request.&lt;/p&gt;
+&lt;p&gt;The request looked like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;POST /api/xxx/xxxevent HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer redacted
+Host: AssetManagement-service-host
+Content-Length: 507
+{
+  &amp;#34;event_id&amp;#34;: &amp;#34;redacted&amp;#34;,
+  &amp;#34;event_type&amp;#34;: &amp;#34;redacted&amp;#34;,
+  &amp;#34;event_time&amp;#34;: &amp;#34;2022-07-06T14:55:00.00Z&amp;#34;,
+  &amp;#34;correlation_id&amp;#34; : &amp;#34;redacted&amp;#34;,
+  &amp;#34;payload&amp;#34;: {
+    &amp;#34;urls&amp;#34;: [
+      {
+        &amp;#34;url_type&amp;#34;: &amp;#34;XXXIntegration&amp;#34;,
+        &amp;#34;url&amp;#34;: &amp;#34;https://XXXIntegration-service-host/api/xxxhistory/xxx/1234&amp;#34;
+      }     
+    ]
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Here is the explanation for each parameter:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Parameter&lt;/th&gt;
+&lt;th&gt;Explanation&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;event_id&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;This is a UUID for a particular event.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;event_type&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Set to &amp;ldquo;&lt;em&gt;public&lt;/em&gt;&amp;rdquo; by default in the collection. Most probably, this identifies if the event is public or private.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;event_time&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Describes the time of the event.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;url_type&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;This is set to &lt;code&gt;XXXIntegration&lt;/code&gt; showing that the &lt;code&gt;XXXIntegration&lt;/code&gt; service is being requested.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;url&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;This is the parameter of utmost interest, as this specifies an &lt;code&gt;XXXIntegration&lt;/code&gt; service URL to fetch data. A user can modify this parameter to hold any arbitrary URL and the API will send requests to that URL&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;The response to this request showed no interesting behavior as it was just a &lt;code&gt;500 Internal Server Error&lt;/code&gt; page without any verbose errors.&lt;/p&gt;
+&lt;p&gt;I started testing this request by providing it with a Synack Burp Collaborator URL. And, to my surprise, it actually sent me an HTTP request.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/request-to-collaborator.png&#34; alt=&#34;Request In Collaborator&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;initial-assumption-and-its-limitations&#34;&gt;Initial Assumption and Its Limitations&lt;/h3&gt;
+&lt;p&gt;Just like you, I also noticed the authorization token in the request. But at the time of testing, I assumed this was my own authorization token. I believed the server forwarded parts of my request to the URL provided as the &lt;code&gt;url&lt;/code&gt; parameter.&lt;/p&gt;
+&lt;p&gt;This kind of behavior has almost no impact on its own because stealing our own bearer token yields nothing. It must be chained with some other attack like CSRF in order to exploit other users. For example, it can be exploited when you make the victim send a request to an attacker-controlled domain.&lt;/p&gt;
+&lt;h3 id=&#34;bypassing-the-blacklist-to-achieve-a-partial-ssrf&#34;&gt;Bypassing The Blacklist To Achieve A Partial SSRF&lt;/h3&gt;
+&lt;p&gt;I ignored this behavior and started checking if I can do a local port scan for it to be eligible for a partial SSRF. I tried to make the API send a request to &lt;code&gt;localhost&lt;/code&gt; but the API had a blacklist in place for such payloads. I tried a handful of payloads like:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;localhost&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;127.0.0.1&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;0.0.0.0&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;127.1&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;But as expected, all were being filtered by the API.&lt;/p&gt;
+&lt;p&gt;This API was allowing requests to arbitrary domains so I thought to try a domain name that resolved to &lt;code&gt;127.0.0.1&lt;/code&gt;. So, I tried it again with the &lt;code&gt;localtest.me&lt;/code&gt; domain and it successfully bypassed the blacklist. I confirmed that it bypassed the blacklist by the &lt;code&gt;500 Internal Server Error&lt;/code&gt; response. Normally, if the API filtered the payload, it sent a &lt;code&gt;403 Forbidden&lt;/code&gt; response.&lt;/p&gt;
+&lt;p&gt;API normally:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/api-filtering-localhost.png&#34; alt=&#34;API Throwing A 403 When Supplied with 0.0.0.0&#34;&gt;&lt;/p&gt;
+&lt;p&gt;API when I use localtest.me:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/api-filtering-localhost-bypassed.png&#34; alt=&#34;API Blacklisting Bypass Using localtest.me&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Now, all I had to do was create a local port scan PoC and submit it as a partial SSRF. However, I decided to escalate this issue in order for a better payout. I kept this vulnerability aside and started checking other functionalities that could potentially be used to exploit the SSRF.&lt;/p&gt;
+&lt;h3 id=&#34;attempting-to-understand-jwt&#34;&gt;Attempting To Understand JWT&lt;/h3&gt;
+&lt;p&gt;At random, a thought clicked in my brain. I wanted to confirm if the bearer token that I received in the collaborator indeed belonged to me. I later confirmed that the bearer token in the collaborator was different from the one that I had in my request.&lt;/p&gt;
+&lt;p&gt;I used &lt;a href=&#34;https://jwt.io/&#34;&gt;jwt.io&lt;/a&gt; to decode both the tokens and compared them side by side. And this comparison further confirmed my belief that both the tokens are different. I will not show a screenshot of this for obvious reasons.&lt;/p&gt;
+&lt;p&gt;Even after confirming that the token is from a different user/service, I still had no idea where this token was being used. I thought to fuzz all API endpoints of all services with this bearer token to see if any of them respond with a &lt;code&gt;200 OK&lt;/code&gt; or even anything apart from &lt;code&gt;401 Unauthorized&lt;/code&gt;.&lt;/p&gt;
+&lt;h3 id=&#34;finding-services-to-use-the-jwt&#34;&gt;Finding Services To Use The JWT&lt;/h3&gt;
+&lt;p&gt;As usual, I got lazy and started looking for alternatives to fuzzing. Also, fuzzing must be the last resort in this situation because there were endpoints that performed different CRUD operations. Any wrong request can break the API.&lt;/p&gt;
+&lt;p&gt;After checking each request manually for a while, a thought randomly clicked in my brain, once again. Let&amp;rsquo;s revisit our vulnerable request:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;{
+	&amp;#34;url_type&amp;#34;: &amp;#34;XXXIntegration&amp;#34;,
+	&amp;#34;url&amp;#34;: &amp;#34;https://XXXIntegration-service-host/api/xxxhistory/xxx/1234&amp;#34;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Here, &lt;code&gt;XXXIntegration&lt;/code&gt; specifies that we are requesting the &lt;code&gt;XXXIntegration&lt;/code&gt; service. If you notice, the &lt;code&gt;XXXIntegration&lt;/code&gt; service is there in the 5 services that I listed at the start of the blog. And the &lt;code&gt;XXXIntegration-service-host&lt;/code&gt; is a host for the same service.&lt;/p&gt;
+&lt;p&gt;So, my hypothesis was that if the original request was being sent to the &lt;code&gt;XXXIntegration-service-host&lt;/code&gt; host, then this access token must also belong to the same service.&lt;/p&gt;
+&lt;p&gt;To confirm this theory, I copied the authorization token received in the collaborator and pasted it into the health check endpoint of the &lt;code&gt;XXXIntegration-service-host&lt;/code&gt; host. The health check endpoint was the perfect to test for this. The reason behind this is that it returned a &lt;code&gt;401 Unauthorized&lt;/code&gt; response if the credentials are invalid and a &lt;code&gt;200 OK&lt;/code&gt; response if the credentials are valid.&lt;/p&gt;
+&lt;p&gt;After setting the authorization token, I successfully received a &lt;code&gt;200 OK&lt;/code&gt;. This confirmed that the token that was leaked in collaborator belonged to the &lt;code&gt;XXXIntegration&lt;/code&gt; service.&lt;/p&gt;
+&lt;p&gt;Before setting the authorization token:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/healthcheck-before-setting-token.png&#34; alt=&#34;API showing a 401 before setting the authorization token&#34;&gt;&lt;/p&gt;
+&lt;p&gt;After setting the authorization token leaked in the collaborator:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/healthcheck-after-setting-token.png&#34; alt=&#34;API showing a 200 OK after setting the authorization token&#34;&gt;&lt;/p&gt;
+&lt;p&gt;This proved that the authorization token can be used to interact with the &lt;code&gt;XXXIntegration&lt;/code&gt; service. However, just to make sure that it can not be accessed with any valid access token, I sent a request to the health check endpoint of the &lt;code&gt;XXXIntegration&lt;/code&gt; service with an access token for the &lt;code&gt;AssetManagement&lt;/code&gt; service. This failed because the application had proper access control checks in place.&lt;/p&gt;
+&lt;p&gt;Also, I later confirmed that we can exfiltrate an access token of ANY service by specifying the service name in the &lt;code&gt;url_type&lt;/code&gt; parameter. If you replace &lt;code&gt;XXXIntegration&lt;/code&gt; with &lt;code&gt;Billing&lt;/code&gt; in the vulnerable request, the collaborator request will yield a Billing service access token.&lt;/p&gt;
+&lt;p&gt;Now we have everything we need to craft a full SSRF report.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;A request to an arbitrary URL&lt;/li&gt;
+&lt;li&gt;API leaking access token of another service&lt;/li&gt;
+&lt;li&gt;Privilege escalation using the access token&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;finding-even-more-scarier-ssrfs&#34;&gt;Finding Even More (Scarier) SSRFs&lt;/h3&gt;
+&lt;p&gt;I started writing a report on this issue. But I accidentally closed all my tabs in Postman. I used the &amp;ldquo;filter&amp;rdquo; option in Postman to search for the &amp;ldquo;event&amp;rdquo; keyword hoping to find the vulnerable endpoint. But instead, I was greeted with 9 such endpoints that ended with &amp;ldquo;event&amp;rdquo;. I checked all of them and found out that all of them were vulnerable.&lt;/p&gt;
+&lt;p&gt;Now, instead of writing one report, I had to write 4 different reports. I wrote the first three reports. And then moved on to the next and final report. This is where I was so shocked that I could not believe what I was seeing.&lt;/p&gt;
+&lt;p&gt;The last endpoint was accessible without any sort of authentication. The request to it looked like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;POST /api/xxx/xxxevent HTTP/1.1
+Content-Type: application/json
+Host: CustomerManagement-service-host
+Content-Length: 622
+
+{
+	&amp;#34;event_id&amp;#34;: &amp;#34;redacted&amp;#34;,
+	&amp;#34;event_type&amp;#34;: &amp;#34;redacted&amp;#34;,
+	&amp;#34;event_time&amp;#34;: &amp;#34;2022-08-30T09:00:00.0000000Z&amp;#34;,
+	&amp;#34;correlation_id&amp;#34;: &amp;#34;redacted&amp;#34;,
+	&amp;#34;payload&amp;#34;: {
+		&amp;#34;urls&amp;#34;: [
+      {
+        &amp;#34;url_type&amp;#34;: &amp;#34;CustomerManagement&amp;#34;,
+        &amp;#34;url&amp;#34;: &amp;#34;https://CustomerManagement-service-host/api/xxx/customer/1234&amp;#34;
+      },
+			{
+				&amp;#34;url_type&amp;#34;: &amp;#34;XXXIntegration&amp;#34;,
+				&amp;#34;url&amp;#34;: &amp;#34;https://XXXIntegration-service-host/api/xxxhistory/xxx/1234&amp;#34;
+			}
+		]
+	}
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Any form of authentication was not required to access this endpoint. So, it allowed a remote unauthenticated attacker to obtain valid authorization tokens for different services. All an attacker has to do is tell the server about the service he/she wants to interact with and a URL to send the authenticated access token. The server will send the credentials without asking for anything. It&amp;rsquo;s that simple. And it&amp;rsquo;s that scary.&lt;/p&gt;
+&lt;p&gt;Sent all four reports to Synack and they accepted them happily with a generous bounty amount.&lt;/p&gt;
+&lt;h3 id=&#34;conclusiontakeaways&#34;&gt;Conclusion/Takeaways&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;Manually check for small details/anomalies. This may or may not lead to vulnerabilities. But it can certainly help you escalate the severity of the issue.&lt;/li&gt;
+&lt;li&gt;Always try to increase the severity of your finding. Never settle for a lower severity vulnerability. Take the help of your fellow hackers if you need to.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;I work full-time as a bug bounty hunter mostly hacking in Synack Red Team (SRT). If you&amp;rsquo;re interested in becoming a part of the Synack Red Team, feel free to connect with me on Twitter, Instagram, or LinkedIn. I&amp;rsquo;m always happy to offer guidance to fellow cybersecurity enthusiasts.&lt;/p&gt;
+&lt;p&gt;EOF&lt;/p&gt;
+</content>
+    </item>
+    
     <item>
       <title>Full Disclosure - DOM-based XSS And Failures In Bug Bounty Hunting</title>
       <link>https://kuldeep.io/posts/fulldisclosure-dom-based-xss/</link>
