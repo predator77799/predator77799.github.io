@@ -5,7 +5,7 @@
     <link>https://kuldeep.io/tags/xss/</link>
     <description>Recent content in XSS on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
+    <language>en</language>
     <lastBuildDate>Thu, 06 Jul 2023 14:33:00 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/xss/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Full Disclosure - DOM-based XSS And Failures In Bug Bounty Hunting</title>

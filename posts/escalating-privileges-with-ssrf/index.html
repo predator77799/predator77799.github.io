@@ -151,12 +151,11 @@ if (!doNotTrack) {
         <p>Hello again, folks!</p>
 <p>This post is regarding my recent findings on Synack Red Team which consisted of a total of 4 SSRF vulnerabilities. Three of them were authenticated SSRFs and the last was a fully unauthenticated SSRF.</p>
 <p>If you follow me on Twitter, you must have seen my post regarding this.</p>
-<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Sent a really scary unauth SSRF in a <a href="https://twitter.com/SynackRedTeam?ref_src=twsrc%5Etfw">@SynackRedTeam</a> target.<br><br>It allowed me to steal authorization tokens for ANY backend API.<br><br>More details in the upcoming blog. <a href="https://t.co/e1tnhIkPu0">pic.twitter.com/e1tnhIkPu0</a></p>&mdash; Kuldeep Pandya (@kuldeepdotexe) <a href="https://twitter.com/kuldeepdotexe/status/1681750978335485952?ref_src=twsrc%5Etfw">July 19, 2023</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script> 
 <p>The finding is pretty straightforward. I can explain it in fewer lines but I want to explain my stepwise thought process to finding this specific vulnerability. I want to do this because the target was live for a total of 11 hours and 47 minutes before I reported the vulnerability, and surprisingly no one else reported it despite the relatively small attack surface.</p>
 <p>To the blog now,</p>
 <p>I was onboarded to the target at 01:31 AM at night. I was obviously sleeping. After waking up, I realized there was a new API target. So I hopped onto my machine.</p>
 <p>I prepared the testing environment by loading the Postman collection and Postman environment files into Postman. I then started Burp Suite in order to view and manipulate the requests.</p>
-<p><img src="/postman-collection.png" alt="Postman Collection"></p>
+<p><img src="/Postman-collection.png" alt="Postman Collection"></p>
 <h3 id="application-overview">Application Overview<a href="#application-overview" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
 <p>There were different services running on each sub-collection. By manually checking each request, I found out that there were a total of 5 services that were actually performing some sort of operation. The other collections are for authentication and other purposes.</p>
 <p>The 5 services that were running included:</p>
@@ -168,7 +167,7 @@ if (!doNotTrack) {
 <li>OLS</li>
 </ul>
 <p>To access any of these services, you require a service-specific access token. For example, if you want to access the <code>Billing</code> service, you must have a <code>Billing</code> access token. If you have an <code>AssetManagement</code> access token, it will not work for the <code>Billing</code> service and vice versa.</p>
-<p>I obtained an access token for the <code>AssetManagement</code> service. I set the access token in the Postman environment in order for the testing process to work properly. And I started exploring various requests.</p>
+<p>I obtained an access token for the <code>AssetManagement</code> service. I set the access token in the Postman environment in order to for the testing process to work properly. And I started exploring various requests.</p>
 <h3 id="initial-discovery">Initial Discovery<a href="#initial-discovery" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
 <p>By manually testing each request on a one-by-one basis, I came across the <code>XXXService - /xxxevent</code> request.</p>
 <p>The request looked like this:</p>
@@ -318,6 +317,13 @@ Content-Length: 622
     </div>
     <div class="pagination__buttons">
         
+        <span class="button previous">
+            <a href="https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Defeating Length Filters to Dump the Database - SQLi</span>
+            </a>
+        </span>
+        
         
         <span class="button next">
             <a href="https://kuldeep.io/posts/fulldisclosure-dom-based-xss/">
@@ -342,7 +348,7 @@ Content-Length: 622
   <div class="footer__inner">
     
       <div class="copyright">
-        <span>© 2023 Powered by <a href="http://gohugo.io">Hugo</a></span>
+        <span>© 2024 Powered by <a href="http://gohugo.io">Hugo</a></span>
     
         <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
       </div>

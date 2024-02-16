@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Cache Deception Without Path Confusion :: kuldeepdotexe&#39;s blog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A weird case of Web Cache Deception vulnerability that didn&#39;t utilize path confusion for exploit." />
+<meta name="keywords" content="WCD, Web Cache Deception, WCD Basics, Web Cache Deception Basics, Cache Deception, WCD Case Study, Web Cache Deception Case Study, Cache Deception Case Study, Web Caching, Cache Keys, Cache Key" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://kuldeep.io/posts/web-cache-deception-without-path-confusion/" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+
+<link rel="stylesheet" href="https://kuldeep.io/assets/style.css">
+
+  <link rel="stylesheet" href="https://kuldeep.io/assets/green.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://kuldeep.io/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://kuldeep.io/img/favicon/green.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="kuldeepdotexe" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Cache Deception Without Path Confusion">
+<meta property="og:description" content="A weird case of Web Cache Deception vulnerability that didn&#39;t utilize path confusion for exploit." />
+<meta property="og:url" content="https://kuldeep.io/posts/web-cache-deception-without-path-confusion/" />
+<meta property="og:site_name" content="kuldeepdotexe&#39;s blog" />
+
+  <meta property="og:image" content="https://kuldeep.io/">
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+  <meta property="article:published_time" content="2023-12-29 14:55:26 &#43;0530 IST" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LMH0XXR2S"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8LMH0XXR2S', { 'anonymize_ip': false });
+}
+</script>
+
+
+</head>
+<body class="green">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Kuldeep&#39;s Blog
+  </div>
+</a>
+
+    </div>
+    
+  </div>
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://kuldeep.io/posts/web-cache-deception-without-path-confusion/">Cache Deception Without Path Confusion</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2023-12-29
+        
+      </span>
+    
+    
+      <span class="post-author">:: Kuldeep Pandya</span>
+    
+    
+      <span class="post-reading-time">:: 9 min read (1810 words)</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://kuldeep.io/tags/wcd/">WCD</a>&nbsp;
+    
+  </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>Hello readers,</p>
+<p>Today, we’ll talk about a unique case of a cache deception vulnerability that I found in one of the Synack Red Team targets. I call this particular case of cache deception vulnerability unique because unlike the usual cache deception exploits, this exploit did not rely on path confusion.</p>
+<p>Unlike my other blogs, I have decided to explain some of the basics in this one because the little details are fascinating!</p>
+<p>Let’s break down the blog into smaller chunks so that we can take one bite at a time.</p>
+<ul>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#the-basics">The Basics</a>
+<ul>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#path-confusion">Path Confusion</a></li>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#web-caching">Web Caching</a></li>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#cache-keys">Cache Keys</a></li>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#web-cache-deception">Web Cache Deception</a>
+<ul>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#discovery">Discovery</a></li>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#exploit">Exploit</a></li>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#limitations">Limitations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#wcd-on-a-synack-target">WCD On A Synack Target</a>
+<ul>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#initial-observations">Initial Observations</a></li>
+<li><a href="/posts/web-cache-deception-without-path-confusion/#crafting-the-exploit">Crafting The Exploit</a></li>
+</ul>
+</li>
+</ul>
+<h1 id="the-basics">The Basics<a href="#the-basics" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>Before going to the specifics of the vulnerability, I would like to elaborate more on the terminologies and techniques that we will use in this blog.</p>
+<h2 id="path-confusion">Path Confusion<a href="#path-confusion" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>Path confusions occur when the application is not configured properly to distinguish between different paths. In a nutshell— it is when two different paths are interpreted as the same path by the application. Similar to what happens in a hash collision.</p>
+<p>Let’s take an example. Suppose you request the following URL:</p>
+<pre tabindex="0"><code>https://kuldeep.io/account/billing
+</code></pre><p>Everything is okay and you go to the billing page of your account. Now, you visit a second URL:</p>
+<pre tabindex="0"><code>https://kuldeep.io/account/billing/nonexistent.js
+</code></pre><p>In an ideal scenario, visiting this URL should result in a <code>404 Not Found</code> because the JS file that we requested does not exist on the web server.</p>
+<p>However, due to a misconfiguration in how the application processes paths/routes, the application takes you to the billing page of your account.</p>
+<p>This is path confusion— two different paths interpreted as the same.</p>
+<p>So many talks on a topic that I did not even use in my final exploit.</p>
+<h2 id="web-caching">Web Caching<a href="#web-caching" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>Processing webpages is a resource-intensive task. When you send a request to, for example, a server running PHP, the server runs the PHP code and provides you with the response.</p>
+<p>This is useful in cases when you are working with dynamic data like user profile information or financial information. However, you do not want the server to process requests to the homepage, or a header/footer, or a static file because as we discussed earlier, it is a resource-intensive task.</p>
+<p>Static files might not take that many resources as compared to the application code but the server still needs to process those requests one-by-one.</p>
+<p>This problem can be solved using <strong>web caching</strong>.</p>
+<p>Web caching is when a front-end server caches the response and serves it to the visitors of the website without relying on the back-end server. This can be explained with the following illustration:</p>
+<p><img src="/web-caching.png" alt="web caching.png"></p>
+<p>When a response is served from the cache, you will likely see the following response headers indicating this:</p>
+<pre tabindex="0"><code>X-Cache: HIT
+X-CDN-Cache: HIT
+</code></pre><p>A <strong>HIT</strong> means that the response is served from the cache. When it is the otherwise, you will see a <strong>MISS</strong> instead of <strong>HIT</strong>.</p>
+<p>Please note that the response header names are likely to vary.</p>
+<p>How does the front-end server know when to cache the request? It makes use of <strong>cache keys</strong>!</p>
+<h2 id="cache-keys">Cache Keys<a href="#cache-keys" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>Cache keys are a number of factors that determine whether or not the request will be cached. Usually, cache keys comprise the URL, the user agent, and the user region. Cache keys can be customized to cache based on specific conditions.</p>
+<p>Different front-end servers have different mechanisms for configuring cache keys. Nevertheless, the basic concept stays the same.</p>
+<h2 id="web-cache-deception">Web Cache Deception<a href="#web-cache-deception" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>In the <strong>Web Caching</strong> section, we saw that the front-end server can be configured to cache specific responses. This raises a question— <em>what if we cache responses that should not be cached?</em></p>
+<p>Usually, only the static resources are cached. But if we could somehow cache the responses that contain sensitive data like cookies or session identifiers or JSON Web Tokens or PII, it would be awesome or scary depending on what side you are on.</p>
+<p><strong>Web Cache Deception</strong> attacks occur when an attacker forces the front-end server to cache sensitive data and then retrieve it from the cache.</p>
+<h3 id="discovery">Discovery<a href="#discovery" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>The very first step towards discovering a WCD vulnerability is to log in to the target application as a normal user and make notes of interesting endpoints.</p>
+<p>What makes an endpoint interesting? Well, it highly depends on the nature of the application. For example, if it is a betting application, maybe knowing how many bets you have made might be interesting. If it is a banking application, most of the endpoints might be interesting because you do not want anyone to know your bank details. All-in-all, we can all agree that all endpoints that disclose PII are sensitive.</p>
+<p>While doing this, make sure that the endpoints that you come across are using <strong>cookies</strong> as the authentication mechanism instead of bearer tokens. Why is this important will be covered in the exploitation section.</p>
+<p>Once you have a vast list of interesting endpoints, you can check for path confusion misconfigurations. While doing this, check the response for cache-related headers to see if you see any cache <strong>HIT</strong>s.</p>
+<p>For this, I would suggest reading this awesome write-up by <a href="https://twitter.com/bxmbn">Bombon</a>: <a href="https://bxmbn.medium.com/how-i-test-for-web-cache-vulnerabilities-tips-and-tricks-9b138da08ff9">https://bxmbn.medium.com/how-i-test-for-web-cache-vulnerabilities-tips-and-tricks-9b138da08ff9</a></p>
+<p>If you see any cache HITs in the interesting endpoints, it can likely be exploited.</p>
+<p>Why do we see cache HITs? Because front-end servers might be configured to cache JS files, CSS files, images, etc. And because we are using path confusion, the front-end server will treat it as a JS file or a CSS depending on what extension you chose. However, the backend server will treat it as a normal request because routing is misconfigured.</p>
+<h3 id="exploit">Exploit<a href="#exploit" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<p>Once you have found that an interesting endpoint is resulting in a cache HIT, it is time to craft the exploit.</p>
+<p>Let’s assume that we have found that <code>[https://kuldeep.io/account/billing/nonexistent.js](https://kuldeep.io/account/billing/nonexistent.js)</code> results in a cache HIT. We have also confirmed that the web application is using cookies as the authentication mechanism. Let’s convert this to an exploit.</p>
+<ol>
+<li>Send this URL to the victim: <a href="https://kuldeep.io/account/billing/nonexistent.js">https://kuldeep.io/account/billing/nonexistent.js</a></li>
+<li>Once the victim visits the URL from his/her authenticated session, the backend server will respond with the billing information. The front-end server will cache the response because it believes that the response is coming from a JS file and JS files should be cached.</li>
+<li>The attacker will retrieve the billing information by visiting the <a href="https://kuldeep.io/account/billing/nonexistent.js">https://kuldeep.io/account/billing/nonexistent.js</a> URL. Because the response has been cached, the attacker will receive a cached copy from the front-end server. This cached copy includes all the billing information of the victim.</li>
+</ol>
+<p>Here, if the application used bearer tokens, we cannot exploit this by simply sending the URL to the victim. It would require an XSS to exploit. And if you already have an XSS, there is no point exploiting WCD.</p>
+<h3 id="limitations">Limitations<a href="#limitations" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
+<ul>
+<li>WCD will not work if the user isn’t logged in.</li>
+<li>It will not work if the application is using bearer tokens as the authentication mechanism.</li>
+<li>In some configurations, the cache will only be served if you are in the same region as the victim.</li>
+<li>If you accidentally visit the URL that you sent to the victim, the victim will receive the cached copy instead of you.</li>
+<li>Even if you get the victim to cache his/her response, the cache may get invalidated after a few seconds or minutes.</li>
+</ul>
+<p>Now that we have covered the basics, let’s move to the WCD vulnerability that I found in one of the Synack targets.</p>
+<h1 id="wcd-on-a-synack-target">WCD On A Synack Target<a href="#wcd-on-a-synack-target" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<h2 id="initial-observations">Initial Observations<a href="#initial-observations" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>I was onboarded to a target where some SRTs had already submitted some vulnerabilities like information disclosures and a few access controls.</p>
+<p>I connected to the target and started traversing the application like a normal user. Wherever possible, I was checking for SQL injections. While doing this, I noticed the static files were served from a GraphQL API. This was unusual.</p>
+<p>I checked what API the application used for dynamic data. To my surprise, it used the same GraphQL API for both, static and dynamic data.</p>
+<p>To retrieve static content, the application used a URL like this:</p>
+<pre tabindex="0"><code>/ui-gateway/v1/graphql?query=query{somequery{someattribute}}&amp;reqIdentifier=someReqIdentifier
+</code></pre><p>In the response header, I noticed that the responses were being cached. I came to this conclusion by seeing the following headers:</p>
+<pre tabindex="0"><code>X-Served-By: cache-iad-somethingrandom-IAD
+X-Cache: HIT
+X-Cache-Hits: 1
+</code></pre><p>To retrieve dynamic content, the application sent a <strong>POST</strong> request to the GraphQL API. Unlike the GET requests, the POST requests did not get cached.</p>
+<p>I thought about converting the POST requests to GET requests to see if they got cached. For this, I used an <strong>interesting</strong> query that is as follows:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-graphql" data-lang="graphql"><span style="display:flex;"><span><span style="color:#66d9ef">query</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">userDetails</span> {
+</span></span><span style="display:flex;"><span>    authStatus {
+</span></span><span style="display:flex;"><span>      authType
+</span></span><span style="display:flex;"><span>      email
+</span></span><span style="display:flex;"><span>      firstName
+</span></span><span style="display:flex;"><span>      lastName
+</span></span><span style="display:flex;"><span>      roles
+</span></span><span style="display:flex;"><span>      userId
+</span></span><span style="display:flex;"><span>      userLogin
+</span></span><span style="display:flex;"><span>      birthDate
+</span></span><span style="display:flex;"><span>      isUnderAgeUser
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    geoLocation
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>This query returns the PII of the currently logged-in user.</p>
+<p>I converted it to a GET request. The final URL looked like this:</p>
+<pre tabindex="0"><code>/ui-gateway/v1/graphql?query=query{userDetails{authStatus{authType email firstName lastName roles userId userLogin birthDate isUnderAgeUser}geoLocation}}
+</code></pre><p>Excited to see the results, I visited the URL from the browser and checked if the response was cached. Sadly, it was not cached. I could not see any cache HITs.</p>
+<p>This made me wonder, <em>how are requests to static queries being cached while dynamic queries aren’t</em>. I sent both of the requests to Burp Suite comparer to see if any special headers determined if the request was cached.</p>
+<p>While doing this, I found a crucial parameter that I had overlooked. The <code>reqIdentifier</code> parameter.</p>
+<p>The <code>reqIdentifier</code> parameter determined if the request would be cached or not. It was in the cache key. If two requests have the same <code>reqIdentifier</code> parameter, they would be treated as the same requests by the front-end server.</p>
+<h2 id="crafting-the-exploit">Crafting The Exploit<a href="#crafting-the-exploit" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>Now that I had a way to get sensitive information cached, I just had to craft an exploit. A malicious URL that I would send to the victim to get his/her PII cached.</p>
+<p>I used the previous <code>userDetails</code> query that I had used in a GET request and appended the <code>reqIdentifier</code> parameter. Sending this parameter made sure that the request will be cached.</p>
+<p>The final exploit URL looked like this:</p>
+<pre tabindex="0"><code>/ui-gateway/v1/graphql?query=query{userDetails{authStatus{authType email firstName lastName roles userId userLogin birthDate isUnderAgeUser}geoLocation}}&amp;reqIdentifier=exploitMe
+</code></pre><p>For a proof-of-concept, I opened two browser windows. One was with a logged-in session (victim session), and the other was an incognito window (attacker session).</p>
+<p>I opened the exploit URL from the logged-in session. This made sure that the PII was cached by the front-end server. By visiting the URL just once, the front-end server cached the response.</p>
+<p>I then opened the same URL from the incognito window and I was greeted with the victim account’s PII. This way, without any sort of authentication, I was able to access a victim account’s confidential details.</p>
+<p>I created an easy-to-follow PoC for this exploit and sent it to Synack. And they happily accepted the vulnerability.</p>
+<p>Thank you for reading. If you have any queries or doubts, feel free to ping me on <a href="https://twitter.com/kuldeepdotexe">X</a>, <a href="http://instagram.com/kuldeepdotexe">Instagram</a>, or <a href="https://www.linkedin.com/in/kuldeep-pandya-13a26a167/">LinkedIn</a>.</p>
+<h1 id="references-and-further-reading">References And Further Reading<a href="#references-and-further-reading" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<ul>
+<li><a href="https://portswigger.net/daily-swig/path-confusion-web-cache-deception-threatens-user-information-online">https://portswigger.net/daily-swig/path-confusion-web-cache-deception-threatens-user-information-online</a></li>
+<li><a href="https://portswigger.net/research/practical-web-cache-poisoning">https://portswigger.net/research/practical-web-cache-poisoning</a></li>
+<li><a href="https://bxmbn.medium.com/chaining-cache-deception-poisoning-250ec69774c8">https://bxmbn.medium.com/chaining-cache-deception-poisoning-250ec69774c8</a></li>
+<li><a href="https://developers.cloudflare.com/cache/cache-security/cache-deception-armor/">https://developers.cloudflare.com/cache/cache-security/cache-deception-armor/</a></li>
+<li><a href="https://www.varnish-software.com/glossary/what-is-web-caching/">https://www.varnish-software.com/glossary/what-is-web-caching/</a></li>
+</ul>
+<p>Happy Hacking! :)</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/">
+                <span class="button__text">Defeating Length Filters to Dump the Database - SQLi</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2024 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="kuldeepdotexe" data-description="Support me on Buy me a coffee!" data-message="Thank you for reading. If you liked this, you can support this by buying me a coffee." data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+
+<script src="https://kuldeep.io/assets/main.js"></script>
+<script src="https://kuldeep.io/assets/prism.js"></script>
+
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

