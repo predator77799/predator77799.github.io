@@ -212,7 +212,7 @@ X-CDN-Cache: HIT
 <p>Why do we see cache HITs? Because front-end servers might be configured to cache JS files, CSS files, images, etc. And because we are using path confusion, the front-end server will treat it as a JS file or a CSS depending on what extension you chose. However, the backend server will treat it as a normal request because routing is misconfigured.</p>
 <h3 id="exploit">Exploit<a href="#exploit" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h3>
 <p>Once you have found that an interesting endpoint is resulting in a cache HIT, it is time to craft the exploit.</p>
-<p>Let’s assume that we have found that <code>[https://kuldeep.io/account/billing/nonexistent.js](https://kuldeep.io/account/billing/nonexistent.js)</code> results in a cache HIT. We have also confirmed that the web application is using cookies as the authentication mechanism. Let’s convert this to an exploit.</p>
+<p>Let’s assume that we have found that <a href="https://kuldeep.io/account/billing/nonexistent.js">https://kuldeep.io/account/billing/nonexistent.js</a> results in a cache HIT. We have also confirmed that the web application is using cookies as the authentication mechanism. Let’s convert this to an exploit.</p>
 <ol>
 <li>Send this URL to the victim: <a href="https://kuldeep.io/account/billing/nonexistent.js">https://kuldeep.io/account/billing/nonexistent.js</a></li>
 <li>Once the victim visits the URL from his/her authenticated session, the backend server will respond with the billing information. The front-end server will cache the response because it believes that the response is coming from a JS file and JS files should be cached.</li>
